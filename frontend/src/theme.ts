@@ -15,7 +15,7 @@ export const ThemeService = {
 
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
-      metaTheme.setAttribute('content', theme === 'dark' ? '#080e1a' : '#f8fafc');
+      metaTheme.setAttribute('content', theme === 'dark' ? '#030712' : '#f8fafc');
     }
 
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
