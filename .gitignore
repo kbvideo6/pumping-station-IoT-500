@@ -1,0 +1,11 @@
+node_modules/
+dist/
+npm-cache/
+npm-global/
+graphify-out/
+.env
+.env.local
+.env.*.local
+*.log
+.firebase/
+.gemini/

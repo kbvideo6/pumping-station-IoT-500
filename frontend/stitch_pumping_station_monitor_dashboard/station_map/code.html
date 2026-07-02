@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>IndustrialOS - Plant Map</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-base": "#0F172A",
+                      "secondary-fixed": "#6ffbbe",
+                      "secondary-fixed-dim": "#4edea3",
+                      "error": "#ffb4ab",
+                      "error-red": "#EF4444",
+                      "on-tertiary-container": "#461f00",
+                      "primary-container": "#4d8eff",
+                      "border-subtle": "#334155",
+                      "primary-fixed-dim": "#adc6ff",
+                      "on-secondary": "#003824",
+                      "surface-dim": "#10131a",
+                      "surface-container-high": "#272a31",
+                      "inverse-on-surface": "#2e3038",
+                      "on-surface": "#e1e2ec",
+                      "terminal-yellow": "#F59E0B",
+                      "on-tertiary": "#502400",
+                      "on-error": "#690005",
+                      "primary": "#adc6ff",
+                      "outline": "#8c909f",
+                      "tertiary-container": "#df7412",
+                      "on-primary-container": "#00285d",
+                      "surface-bright": "#363941",
+                      "tertiary-fixed-dim": "#ffb786",
+                      "on-primary-fixed-variant": "#004395",
+                      "on-primary-fixed": "#001a42",
+                      "on-primary": "#002e6a",
+                      "primary-fixed": "#d8e2ff",
+                      "outline-variant": "#424754",
+                      "secondary": "#4edea3",
+                      "on-surface-variant": "#c2c6d6",
+                      "tertiary-fixed": "#ffdcc6",
+                      "inverse-primary": "#005ac2",
+                      "text-muted": "#94A3B8",
+                      "surface": "#10131a",
+                      "on-secondary-fixed": "#002113",
+                      "secondary-container": "#00a572",
+                      "on-tertiary-fixed": "#311400",
+                      "surface-elevated": "#1E293B",
+                      "on-error-container": "#ffdad6",
+                      "surface-variant": "#32353c",
+                      "surface-container-lowest": "#0b0e15",
+                      "surface-container": "#1d2027",
+                      "inverse-surface": "#e1e2ec",
+                      "on-background": "#e1e2ec",
+                      "tertiary": "#ffb786",
+                      "on-secondary-fixed-variant": "#005236",
+                      "on-tertiary-fixed-variant": "#723600",
+                      "background": "#10131a",
+                      "error-container": "#93000a",
+                      "on-secondary-container": "#00311f",
+                      "surface-tint": "#adc6ff",
+                      "surface-container-low": "#191b23",
+                      "surface-container-highest": "#32353c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "margin-desktop": "24px",
+                      "unit": "4px",
+                      "margin-mobile": "16px",
+                      "container-max": "1440px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Hanken Grotesk"
+                      ],
+                      "label-md": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-md": [
+                              "Hanken Grotesk"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "JetBrains Mono"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "14px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-surface flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-lowest h-screen sticky left-0 top-0 w-60 border-r border-border-subtle flex flex-col gap-unit py-gutter z-50">
+<div class="px-margin-desktop mb-6 flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center border border-border-subtle">
+<span class="material-symbols-outlined text-primary">factory</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary tracking-tighter">Plant 01</h1>
+<p class="font-label-sm text-label-sm text-text-muted">Active Monitoring</p>
+</div>
+</div>
+<div class="flex-1 px-4 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-text-muted hover:text-on-surface-variant hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded bg-secondary-container/20 text-secondary-fixed border-r-4 border-secondary-fixed transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-label-md text-label-md">Map</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-text-muted hover:text-on-surface-variant hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+<span class="font-label-md text-label-md">Alerts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-text-muted hover:text-on-surface-variant hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings_suggest">settings_suggest</span>
+<span class="font-label-md text-label-md">Management</span>
+</a>
+</div>
+<div class="px-4 mt-auto">
+<button class="w-full bg-surface-container-high border border-border-subtle hover:bg-surface-variant text-on-surface font-label-md text-label-md py-3 rounded transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">build</span>
+                Run Diagnostics
+            </button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-full relative">
+<!-- TopNavBar -->
+<header class="bg-surface-container-low/80 backdrop-blur-md w-full sticky top-0 z-40 border-b border-border-subtle flex justify-between items-center h-14 px-margin-desktop">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tighter">IndustrialOS</span>
+<div class="h-6 w-px bg-border-subtle mx-2"></div>
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
+<input class="bg-surface-container-lowest border border-border-subtle rounded-sm pl-10 pr-4 py-1.5 font-label-md text-label-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none w-64 placeholder-text-muted transition-all" placeholder="Search systems..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-border-subtle ml-2 overflow-hidden">
+<img alt="User operator profile" class="w-full h-full object-cover" data-alt="A macro shot of a sleek, futuristic metallic operator badge or terminal interface component in a dark control room setting. High contrast, sharp details, cyan and slate lighting, hyper-realistic industrial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSP8qUaiXn0PSptTDw8HfJsfuTTxuAGYva1kVa_b3s3AFqZCKtrkE7_yDNBHLDLGQ4dtseBQyHGAmOmVgB22iiurqHl2VDSUuELBMeyVFxuUc_upSWylfcvvqTgQGTGYf-llqbA_5o1HlFNxm_PViAwB7OS_C9Zh7st3x2Y9BGUIBiovQsROAkXUtlyzjudYUJK7_zs6M7NmioLuj-EArEVY3RKZ9MztMxjVj8wrPpi6Ck98lr0mzFo3o7dpFnAJA7VTIaL9u_xtM"/>
+</div>
+</div>
+</header>
+<!-- Map Container -->
+<main class="flex-1 relative bg-surface-base w-full h-full">
+<!-- Simulated Map Background -->
+<div class="absolute inset-0 bg-[url('placeholder')] bg-cover bg-center opacity-40 mix-blend-luminosity pointer-events-none" data-alt="A highly detailed, dark-themed satellite or topographical map of a vast industrial complex. The map uses a monochrome dark slate palette with subtle grid lines and faint neon blue topographic contours. It looks like a high-end technical terminal display, devoid of colorful real-world elements, focusing on raw data representation." data-location="Industrial Sector 7G" style=""></div>
+<!-- Map Grid Overlay -->
+<div class="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px),linear-gradient(to_bottom,#334155_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-20 pointer-events-none"></div>
+<!-- Map Controls (Top Left) -->
+<div class="absolute top-gutter left-gutter flex flex-col gap-2 z-10">
+<div class="bg-surface-container-high border border-border-subtle rounded flex flex-col shadow-lg backdrop-blur-sm">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-variant border-b border-border-subtle transition-colors">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+</div>
+<button class="w-8 h-8 bg-surface-container-high border border-border-subtle rounded flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-variant shadow-lg backdrop-blur-sm transition-colors">
+<span class="material-symbols-outlined text-[20px]">my_location</span>
+</button>
+</div>
+<!-- Map Legend (Bottom Left) -->
+<div class="absolute bottom-margin-desktop left-margin-desktop z-10 bg-surface-container/90 backdrop-blur-md border border-border-subtle rounded p-4 shadow-lg min-w-[200px]">
+<h3 class="font-label-sm text-label-sm text-text-muted mb-3 uppercase tracking-wider">Station Status</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary-fixed shadow-[0_0_8px_rgba(111,251,190,0.5)]"></div>
+<span class="font-body-sm text-body-sm text-on-surface">Normal (42)</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-terminal-yellow shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+<span class="font-body-sm text-body-sm text-on-surface">Warning (5)</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-error-red shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+<span class="font-body-sm text-body-sm text-on-surface">Alert (2)</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+<span class="font-body-sm text-body-sm text-text-muted">Offline (1)</span>
+</div>
+</div>
+</div>
+<!-- Markers Layer -->
+<div class="absolute inset-0 pointer-events-auto">
+<!-- Normal Marker -->
+<div class="absolute top-[30%] left-[40%] transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer">
+<div class="relative w-8 h-8 flex items-center justify-center">
+<div class="absolute inset-0 bg-secondary-fixed rounded-full opacity-20 group-hover:animate-ping"></div>
+<div class="w-4 h-4 bg-secondary-fixed rounded-full border-2 border-surface-base shadow-[0_0_12px_rgba(111,251,190,0.8)] z-10"></div>
+<div class="absolute top-full mt-1 bg-surface-container-high border border-border-subtle px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity font-label-sm text-label-sm text-on-surface whitespace-nowrap z-20 pointer-events-none">
+                            PS-A12
+                        </div>
+</div>
+</div>
+<!-- Warning Marker -->
+<div class="absolute top-[60%] left-[25%] transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer">
+<div class="relative w-8 h-8 flex items-center justify-center">
+<div class="w-4 h-4 bg-terminal-yellow rounded-full border-2 border-surface-base shadow-[0_0_12px_rgba(245,158,11,0.8)] z-10"></div>
+<div class="absolute top-full mt-1 bg-surface-container-high border border-border-subtle px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity font-label-sm text-label-sm text-on-surface whitespace-nowrap z-20 pointer-events-none">
+                            PS-B04
+                        </div>
+</div>
+</div>
+<!-- Offline Marker -->
+<div class="absolute top-[20%] left-[70%] transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer">
+<div class="relative w-8 h-8 flex items-center justify-center">
+<div class="w-4 h-4 bg-outline-variant rounded-full border-2 border-surface-base z-10"></div>
+<div class="absolute top-full mt-1 bg-surface-container-high border border-border-subtle px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity font-label-sm text-label-sm text-text-muted whitespace-nowrap z-20 pointer-events-none">
+                            PS-X99 (Maint)
+                        </div>
+</div>
+</div>
+<!-- Alert Marker WITH POPUP (Active State) -->
+<div class="absolute top-[45%] left-[65%] transform -translate-x-1/2 -translate-y-1/2 z-30">
+<div class="relative w-12 h-12 flex items-center justify-center -ml-2 -mt-2">
+<!-- Pulsing effect for alert -->
+<div class="absolute inset-0 bg-error-red rounded-full opacity-30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+<div class="absolute inset-2 bg-error-red rounded-full opacity-50 animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+<div class="w-5 h-5 bg-error-red rounded-full border-2 border-surface-base shadow-[0_0_15px_rgba(239,68,68,1)] z-10"></div>
+</div>
+<!-- Popup Card -->
+<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-72 bg-surface-container-high border border-border-subtle rounded shadow-2xl backdrop-blur-md overflow-hidden">
+<!-- Popup Header -->
+<div class="bg-error/10 border-b border-border-subtle px-4 py-3 flex justify-between items-start">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-error-red text-[16px]">error</span>
+<h4 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">PS-C09 CRITICAL</h4>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted">Pressure Drop Detected</p>
+</div>
+<button class="text-text-muted hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Popup Body -->
+<div class="p-4 flex flex-col gap-3">
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-base border border-border-subtle rounded p-2 flex flex-col items-center justify-center">
+<span class="font-label-sm text-label-sm text-text-muted mb-1">FLOW RATE</span>
+<span class="font-label-md text-label-md text-error-red">12.4 L/s</span>
+</div>
+<div class="bg-surface-base border border-border-subtle rounded p-2 flex flex-col items-center justify-center">
+<span class="font-label-sm text-label-sm text-text-muted mb-1">PRESSURE</span>
+<span class="font-label-md text-label-md text-error-red">42 kPa</span>
+</div>
+</div>
+<div class="w-full bg-surface-base rounded-full h-1.5 mt-2">
+<div class="bg-error-red h-1.5 rounded-full" style="width: 25%"></div>
+</div>
+<a class="mt-2 w-full flex items-center justify-between px-3 py-2 border border-primary-container text-primary font-label-md text-label-md rounded hover:bg-primary-container/10 transition-colors group" href="#">
+                                View Full Diagnostics
+                                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+<!-- Popup Pointer -->
+<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-surface-container-high border-b border-r border-border-subtle rotate-45"></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

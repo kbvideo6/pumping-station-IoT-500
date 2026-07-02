@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pumpstation Graz-Ost - IndustrialOS</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Tailwind Config injected from provided design system -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-base": "#0F172A",
+                    "secondary-fixed": "#6ffbbe",
+                    "secondary-fixed-dim": "#4edea3",
+                    "error": "#ffb4ab",
+                    "error-red": "#EF4444",
+                    "on-tertiary-container": "#461f00",
+                    "primary-container": "#4d8eff",
+                    "border-subtle": "#334155",
+                    "primary-fixed-dim": "#adc6ff",
+                    "on-secondary": "#003824",
+                    "surface-dim": "#10131a",
+                    "surface-container-high": "#272a31",
+                    "inverse-on-surface": "#2e3038",
+                    "on-surface": "#e1e2ec",
+                    "terminal-yellow": "#F59E0B",
+                    "on-tertiary": "#502400",
+                    "on-error": "#690005",
+                    "primary": "#adc6ff",
+                    "outline": "#8c909f",
+                    "tertiary-container": "#df7412",
+                    "on-primary-container": "#00285d",
+                    "surface-bright": "#363941",
+                    "tertiary-fixed-dim": "#ffb786",
+                    "on-primary-fixed-variant": "#004395",
+                    "on-primary-fixed": "#001a42",
+                    "on-primary": "#002e6a",
+                    "primary-fixed": "#d8e2ff",
+                    "outline-variant": "#424754",
+                    "secondary": "#4edea3",
+                    "on-surface-variant": "#c2c6d6",
+                    "tertiary-fixed": "#ffdcc6",
+                    "inverse-primary": "#005ac2",
+                    "text-muted": "#94A3B8",
+                    "surface": "#10131a",
+                    "on-secondary-fixed": "#002113",
+                    "secondary-container": "#00a572",
+                    "on-tertiary-fixed": "#311400",
+                    "surface-elevated": "#1E293B",
+                    "on-error-container": "#ffdad6",
+                    "surface-variant": "#32353c",
+                    "surface-container-lowest": "#0b0e15",
+                    "surface-container": "#1d2027",
+                    "inverse-surface": "#e1e2ec",
+                    "on-background": "#e1e2ec",
+                    "tertiary": "#ffb786",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary-fixed-variant": "#723600",
+                    "background": "#10131a",
+                    "error-container": "#93000a",
+                    "on-secondary-container": "#00311f",
+                    "surface-tint": "#adc6ff",
+                    "surface-container-low": "#191b23",
+                    "surface-container-highest": "#32353c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "margin-desktop": "24px",
+                    "unit": "4px",
+                    "margin-mobile": "16px",
+                    "container-max": "1440px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Hanken Grotesk"],
+                    "label-md": ["JetBrains Mono"],
+                    "headline-md": ["Hanken Grotesk"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "label-md": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom scrollbar for data density aesthetic */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: theme('colors.surface-base'); }
+        ::-webkit-scrollbar-thumb { background: theme('colors.border-subtle'); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.outline-variant'); }
+    </style>
+</head>
+<body class="bg-surface-base text-on-surface font-body-md text-body-md flex h-screen overflow-hidden antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- App Shell: SideNavBar -->
+<aside class="hidden md:flex flex-col gap-unit py-gutter w-60 h-screen sticky left-0 top-0 bg-surface-container-lowest border-r border-border-subtle z-40 shrink-0">
+<!-- Header -->
+<div class="px-gutter mb-6 flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-surface-container border border-border-subtle flex items-center justify-center shrink-0 overflow-hidden">
+<span class="material-symbols-outlined text-secondary-fixed">memory</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary leading-tight">Plant 01</h2>
+<p class="font-label-sm text-label-sm text-text-muted mt-1">Active Monitoring</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex-1 flex flex-col px-2 gap-1">
+<!-- Active Tab: Overview -->
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-secondary-container/20 text-secondary-fixed border-r-4 border-secondary-fixed hover:bg-surface-container-low transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                Overview
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-muted hover:text-on-surface-variant hover:bg-surface-container-low transition-all duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">map</span>
+                Map
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-muted hover:text-on-surface-variant hover:bg-surface-container-low transition-all duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">warning</span>
+                Alerts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-muted hover:text-on-surface-variant hover:bg-surface-container-low transition-all duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings_suggest</span>
+                Management
+            </a>
+</nav>
+<!-- Footer CTA -->
+<div class="px-4 mt-auto">
+<button class="w-full flex items-center justify-center gap-2 py-2 border border-border-subtle rounded text-text-muted hover:bg-surface-container-high transition-colors font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                Run Diagnostics
+            </button>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+<!-- App Shell: TopNavBar -->
+<header class="w-full sticky top-0 z-50 bg-surface-container-low/80 backdrop-blur-md border-b border-border-subtle flex justify-between items-center h-14 px-margin-desktop shrink-0">
+<!-- Left side (Mobile Brand or Breadcrumbs on Desktop) -->
+<div class="flex items-center gap-4">
+<!-- Mobile menu toggle placeholder -->
+<button class="md:hidden text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-primary tracking-tighter">IndustrialOS</div>
+</div>
+<!-- Search (center-left alignment per JSON 'search_bar: on_left' intent in flex layout) -->
+<div class="hidden lg:flex items-center bg-surface-base border border-border-subtle rounded px-3 py-1.5 w-64 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+<span class="material-symbols-outlined text-text-muted text-[18px] mr-2">search</span>
+<input class="bg-transparent border-none p-0 text-body-md font-body-md text-on-surface placeholder:text-text-muted focus:ring-0 w-full outline-none" placeholder="Search system..." type="text"/>
+</div>
+<!-- Right side Actions -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 p-1.5 rounded active:scale-95 transition-transform relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error-red rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 p-1.5 rounded active:scale-95 transition-transform">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full border border-border-subtle bg-surface-container-high overflow-hidden ml-2 shrink-0">
+<img class="w-full h-full object-cover" data-alt="A macro photography style rendering of an abstract metallic sphere indicating a user profile avatar in a dark mode UI, moody lighting, technological aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJlaIr1rgztdJtzfm3BpYuVbBvrsuIPSKh-Qk9gU2NL5Lgd7aY9vB9d-7KTWNTiIenpPHweYzf00RwlF-pWy0nm3MC-2H6iLvt0IVlNs4zbd91dNBt2eOfBQ801hr1g65hI9zTHDLz1uBt9Y5rTU_UsL0vaxYXHdpYYGiOnccQTQYfAByFtkS3eJDbEISJ7JQFe2lpcRI3wE6pmP0ccU99DM0I-S-iyRwHesElzZdux1cZg1xV8zDjP_5y7I7T5MNQohRWjDyAnhE"/>
+</div>
+</div>
+</header>
+<!-- Page Content Scrollable Area -->
+<main class="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop">
+<div class="max-w-container-max mx-auto space-y-gutter">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+<div>
+<div class="flex items-center gap-2 text-text-muted font-label-md text-label-md mb-2">
+<span>Sector 4</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-on-surface">Subsystems</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface m-0 leading-none">Pumpstation Graz-Ost</h1>
+</div>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1.5 bg-surface-container border border-border-subtle rounded px-2.5 py-1 font-label-md text-label-md text-text-muted">
+<span class="w-2 h-2 rounded-full bg-secondary-fixed animate-pulse"></span>
+                            Online
+                        </span>
+<button class="bg-surface-container hover:bg-surface-container-high border border-border-subtle text-on-surface rounded px-4 py-2 font-label-md text-label-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+                            Sync
+                        </button>
+</div>
+</div>
+<!-- Top Row Metrics (Bento Grid) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Metric: Current -->
+<div class="bg-surface-container border border-border-subtle rounded p-4 flex flex-col justify-between group hover:border-outline-variant transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-text-muted uppercase tracking-wider">Current</span>
+<span class="bg-secondary-container/10 text-secondary-fixed border border-secondary-fixed/20 rounded px-2 py-0.5 font-label-sm text-label-sm">Normal</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">12.4</span>
+<span class="font-label-md text-label-md text-text-muted">A</span>
+</div>
+<!-- Micro sparkline mockup -->
+<div class="h-6 w-full mt-4 flex items-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+<div class="w-1/6 bg-secondary-fixed/40 h-1/3 rounded-t-sm"></div>
+<div class="w-1/6 bg-secondary-fixed/40 h-2/3 rounded-t-sm"></div>
+<div class="w-1/6 bg-secondary-fixed/40 h-1/2 rounded-t-sm"></div>
+<div class="w-1/6 bg-secondary-fixed/40 h-full rounded-t-sm"></div>
+<div class="w-1/6 bg-secondary-fixed h-3/4 rounded-t-sm"></div>
+</div>
+</div>
+<!-- Metric: Signal -->
+<div class="bg-surface-container border border-border-subtle rounded p-4 flex flex-col justify-between hover:border-outline-variant transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-text-muted uppercase tracking-wider">Signal Strength</span>
+<span class="material-symbols-outlined text-text-muted">wifi</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">-67</span>
+<span class="font-label-md text-label-md text-text-muted">dBm</span>
+</div>
+<!-- Signal Bar Indicator -->
+<div class="h-6 w-full mt-4 flex items-end gap-1">
+<div class="flex-1 bg-secondary-fixed h-1/4 rounded-sm"></div>
+<div class="flex-1 bg-secondary-fixed h-2/4 rounded-sm"></div>
+<div class="flex-1 bg-secondary-fixed h-3/4 rounded-sm"></div>
+<div class="flex-1 bg-surface-variant h-full rounded-sm"></div>
+<div class="flex-1 bg-surface-variant h-full rounded-sm"></div>
+</div>
+</div>
+<!-- Metric: Uptime -->
+<div class="bg-surface-container border border-border-subtle rounded p-4 flex flex-col justify-between hover:border-outline-variant transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-text-muted uppercase tracking-wider">Uptime</span>
+<span class="material-symbols-outlined text-text-muted">schedule</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">24<span class="text-[20px] text-text-muted">h</span> 12<span class="text-[20px] text-text-muted">m</span></span>
+</div>
+<div class="mt-4 font-label-sm text-label-sm text-text-muted">Since last reboot</div>
+</div>
+<!-- Metric: Firmware -->
+<div class="bg-surface-container border border-border-subtle rounded p-4 flex flex-col justify-between hover:border-outline-variant transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-text-muted uppercase tracking-wider">Firmware</span>
+<span class="material-symbols-outlined text-text-muted">update</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">v1.0.0</span>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary-fixed">Up to date</span>
+<button class="text-primary hover:text-primary-fixed text-label-sm font-label-md underline underline-offset-2">Changelog</button>
+</div>
+</div>
+</div>
+<!-- Tabs Section -->
+<div class="border-b border-border-subtle mt-8">
+<nav aria-label="Tabs" class="flex space-x-6 -mb-px overflow-x-auto no-scrollbar">
+<button class="tab-btn active border-b-2 border-primary text-primary font-label-md text-label-md py-3 px-1 whitespace-nowrap outline-none" data-target="tab-live">
+                            Live Telemetry
+                        </button>
+<button class="tab-btn border-b-2 border-transparent text-text-muted hover:text-on-surface hover:border-border-subtle font-label-md text-label-md py-3 px-1 whitespace-nowrap transition-colors outline-none" data-target="tab-history">
+                            History Log
+                        </button>
+<button class="tab-btn border-b-2 border-transparent text-text-muted hover:text-on-surface hover:border-border-subtle font-label-md text-label-md py-3 px-1 whitespace-nowrap transition-colors outline-none" data-target="tab-config">
+                            Configuration
+                        </button>
+<button class="tab-btn border-b-2 border-transparent text-text-muted hover:text-on-surface hover:border-border-subtle font-label-md text-label-md py-3 px-1 whitespace-nowrap transition-colors outline-none flex items-center gap-2" data-target="tab-alerts">
+                            Alerts
+                            <span class="bg-surface-variant text-text-muted rounded px-1.5 py-0.5 text-[10px] leading-none">0</span>
+</button>
+</nav>
+</div>
+<!-- Tab Contents -->
+<div class="mt-6 relative min-h-[500px]">
+<!-- LIVE TAB CONTENT -->
+<div class="tab-content block animate-[fadeIn_0.3s_ease-out]" id="tab-live">
+<div class="bg-surface-container border border-border-subtle rounded-lg p-1">
+<!-- Chart Toolbar -->
+<div class="px-4 py-3 border-b border-border-subtle flex justify-between items-center bg-surface-container-low rounded-t-lg">
+<h3 class="font-label-md text-label-md text-on-surface">Motor Current (Last 30 Min)</h3>
+<div class="flex gap-2">
+<button class="p-1 rounded text-text-muted hover:text-on-surface hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-[18px]">zoom_in</span></button>
+<button class="p-1 rounded text-text-muted hover:text-on-surface hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-[18px]">download</span></button>
+</div>
+</div>
+<!-- Canvas Container -->
+<div class="p-4 bg-surface-base h-[400px] w-full rounded-b-lg">
+<canvas id="currentChart"></canvas>
+</div>
+</div>
+</div>
+<!-- CONFIG TAB CONTENT (Admin Form) -->
+<div class="tab-content hidden animate-[fadeIn_0.3s_ease-out]" id="tab-config">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Form Panel -->
+<div class="lg:col-span-2 bg-surface-container border border-border-subtle rounded-lg">
+<div class="px-6 py-4 border-b border-border-subtle">
+<h3 class="font-headline-md text-headline-md text-on-surface text-[18px]">Station Parameters</h3>
+<p class="font-body-md text-body-md text-text-muted mt-1">Adjust operational thresholds and identifiers.</p>
+</div>
+<div class="p-6 space-y-6">
+<!-- Field Group: Identification -->
+<div>
+<label class="block font-label-md text-label-md text-text-muted mb-2">Station Identifier</label>
+<input class="w-full bg-surface-base border border-border-subtle rounded px-4 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all" type="text" value="Pumpstation Graz-Ost"/>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<!-- Field: Warning Threshold -->
+<div>
+<label class="block font-label-md text-label-md text-text-muted mb-2">Warning Current Threshold (A)</label>
+<div class="relative">
+<input class="w-full bg-surface-base border border-border-subtle rounded px-4 py-2.5 text-on-surface font-label-md text-label-md focus:border-terminal-yellow focus:ring-1 focus:ring-terminal-yellow/50 outline-none transition-all pr-10" step="0.1" type="number" value="15.0"/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-terminal-yellow material-symbols-outlined text-[18px]">warning</span>
+</div>
+</div>
+<!-- Field: Critical Threshold -->
+<div>
+<label class="block font-label-md text-label-md text-text-muted mb-2">Critical Current Threshold (A)</label>
+<div class="relative">
+<input class="w-full bg-surface-base border border-border-subtle rounded px-4 py-2.5 text-on-surface font-label-md text-label-md focus:border-error-red focus:ring-1 focus:ring-error-red/50 outline-none transition-all pr-10" step="0.1" type="number" value="18.0"/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-error-red material-symbols-outlined text-[18px]">error</span>
+</div>
+</div>
+</div>
+<!-- Field: Poll Rate -->
+<div>
+<label class="block font-label-md text-label-md text-text-muted mb-2">Telemetry Poll Rate</label>
+<select class="w-full bg-surface-base border border-border-subtle rounded px-4 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all appearance-none">
+<option value="1">1 Second (High Res)</option>
+<option selected="" value="5">5 Seconds (Standard)</option>
+<option value="30">30 Seconds</option>
+<option value="60">1 Minute (Eco)</option>
+</select>
+</div>
+</div>
+<div class="px-6 py-4 border-t border-border-subtle bg-surface-container-low rounded-b-lg flex justify-end gap-3">
+<button class="px-4 py-2 rounded font-label-md text-label-md text-on-surface border border-border-subtle hover:bg-surface-variant transition-colors">Discard</button>
+<button class="px-4 py-2 rounded font-label-md text-label-md bg-primary-container text-on-primary-container hover:bg-primary-fixed transition-colors shadow-sm">Save Configuration</button>
+</div>
+</div>
+<!-- Context Panel side -->
+<div class="bg-surface-container border border-border-subtle rounded-lg p-6">
+<h4 class="font-headline-md text-headline-md text-[16px] text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-[20px]">info</span>
+                                    Configuration Guide
+                                </h4>
+<div class="space-y-4 font-body-md text-body-md text-text-muted">
+<p>Thresholds determine the state of automated alerts sent to the control center.</p>
+<ul class="space-y-2 list-none p-0">
+<li class="flex items-start gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-terminal-yellow mt-2 shrink-0"></span>
+<span><strong>Warning (Amber):</strong> Triggers a non-critical notification. Motor continues operation.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-error-red mt-2 shrink-0"></span>
+<span><strong>Critical (Red):</strong> Initiates automated shutdown protocol if sustained for &gt; 10s.</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<!-- Placeholder tabs for completeness -->
+<div class="tab-content hidden animate-[fadeIn_0.3s_ease-out]" id="tab-history">
+<div class="h-64 border border-dashed border-border-subtle rounded-lg flex items-center justify-center text-text-muted font-label-md text-label-md">
+                            History Data Table View (Select date range)
+                        </div>
+</div>
+<div class="tab-content hidden animate-[fadeIn_0.3s_ease-out]" id="tab-alerts">
+<div class="h-64 border border-dashed border-border-subtle rounded-lg flex items-center justify-center text-text-muted font-label-md text-label-md">
+                            No active alerts. System operating normally.
+                        </div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Scripts for Interaction and Chart -->
+<script>
+        // Simple Tab Switching Logic
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active classes from all buttons
+                tabBtns.forEach(b => {
+                    b.classList.remove('border-primary', 'text-primary');
+                    b.classList.add('border-transparent', 'text-text-muted');
+                });
+                // Add active class to clicked button
+                btn.classList.remove('border-transparent', 'text-text-muted');
+                btn.classList.add('border-primary', 'text-primary');
+
+                // Hide all contents
+                tabContents.forEach(c => c.classList.add('hidden'));
+                
+                // Show target content
+                const targetId = btn.getAttribute('data-target');
+                document.getElementById(targetId).classList.remove('hidden');
+            });
+        });
+
+        // Add tailwind animation class programmatically for smooth tab fade
+        tailwind.config.theme.extend.keyframes = {
+            fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(5px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+        }
+
+        // Chart.js Setup
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('currentChart').getContext('2d');
+            
+            // Generate some mock data for 30 minutes
+            const labels = Array.from({length: 30}, (_, i) => `-${30-i}m`);
+            // Base current around 12A, adding some noise
+            const dataPts = Array.from({length: 30}, () => 11.5 + Math.random() * 2);
+            // Spike to show dynamic nature
+            dataPts[25] = 14.8;
+            dataPts[26] = 13.2;
+
+            // Get colors from CSS variables/tailwind theme
+            const primaryColor = '#adc6ff'; // theme primary
+            const gridColor = '#334155'; // theme border-subtle
+            const warningColor = '#F59E0B'; // theme terminal-yellow
+            const criticalColor = '#EF4444'; // theme error-red
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Motor Current (A)',
+                        data: dataPts,
+                        borderColor: primaryColor,
+                        backgroundColor: 'rgba(173, 198, 255, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: true,
+                        tension: 0.3 // Smooth curves
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1E293B', // surface-elevated
+                            titleFont: { family: 'JetBrains Mono', size: 11 },
+                            bodyFont: { family: 'JetBrains Mono', size: 13 },
+                            padding: 10,
+                            displayColors: false,
+                            borderColor: '#334155',
+                            borderWidth: 1
+                        },
+                        annotation: {
+                            // Using standard Chart.js drawing for thresholds if plugin not loaded, 
+                            // but let's emulate it via a custom plugin drawing on top for reliability without extra CDNs
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor, drawBorder: false },
+                            ticks: { 
+                                color: '#94A3B8', // text-muted
+                                font: { family: 'JetBrains Mono', size: 11 },
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            min: 8,
+                            max: 20,
+                            grid: { color: gridColor, drawBorder: false },
+                            ticks: { 
+                                color: '#94A3B8',
+                                font: { family: 'JetBrains Mono', size: 11 },
+                                stepSize: 2
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'thresholdLines',
+                    beforeDraw: (chart) => {
+                        const {ctx, chartArea: {top, bottom, left, right}, scales: {x, y}} = chart;
+                        
+                        const drawLine = (yValue, color, label) => {
+                            const yPos = y.getPixelForValue(yValue);
+                            if(yPos > bottom || yPos < top) return; // out of bounds
+                            
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([5, 5]);
+                            ctx.moveTo(left, yPos);
+                            ctx.lineTo(right, yPos);
+                            ctx.stroke();
+                            
+                            ctx.fillStyle = color;
+                            ctx.font = '10px JetBrains Mono';
+                            ctx.textAlign = 'right';
+                            ctx.fillText(label, right - 5, yPos - 5);
+                            ctx.restore();
+                        };
+
+                        drawLine(15.0, warningColor, 'WARN (15A)');
+                        drawLine(18.0, criticalColor, 'CRIT (18A)');
+                    }
+                }]
+            });
+        });
+    </script>
+</body></html>

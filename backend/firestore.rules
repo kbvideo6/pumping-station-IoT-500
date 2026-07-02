@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isUser() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    match /history/{stationId}/readings/{readingId} {
+      allow read: if isUser();
+      allow write: if false; // Only Cloud Functions write here (via Admin SDK)
+    }
+    
+    match /alerts/{alertId} {
+      allow read: if isUser();
+      allow update: if isAdmin() && 
+                       request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['acknowledged', 'acknowledgedBy', 'acknowledgedAt']);
+      allow create, delete: if false; // Only Cloud Functions
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        (request.auth.token.email != null && request.auth.token.email == userId) || 
+        isAdmin()
+      );
+      
+      allow create: if isAuthenticated() && 
+                    request.auth.uid == userId &&
+                    (
+                      request.resource.data.role == 'viewer' ||
+                      (
+                        request.auth.token.email != null &&
+                        exists(/databases/$(database)/documents/users/$(request.auth.token.email)) &&
+                        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == request.resource.data.role
+                      )
+                    );
+                    
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+        isAdmin()
+      );
+      
+      allow delete: if isAuthenticated() && (
+        (request.auth.token.email != null && request.auth.token.email == userId) ||
+        isAdmin()
+      );
+    }
+    
+    match /devices/{stationId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}

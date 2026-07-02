@@ -1,0 +1,13 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /firmware/{allPaths=**} {
+      // Allow read for everyone (ESP32 retrieves OTA files)
+      allow read: if true;
+      // Allow write only for authenticated users who are administrators
+      allow write: if request.auth != null &&
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
