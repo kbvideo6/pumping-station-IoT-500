@@ -1,23 +1,21 @@
 {
   "rules": {
     "stations": {
+      ".read": "auth != null",
       "$stationId": {
         "live": {
-          ".read": "auth != null && (auth.uid === $stationId || root.child('users/' + auth.uid).exists())",
           ".write": "auth != null && auth.uid === $stationId"
         },
         "config": {
-          ".read": "auth != null && (auth.uid === $stationId || root.child('users/' + auth.uid).exists())",
           ".write": "auth != null && root.child('users/' + auth.uid + '/role').val() === 'admin'"
         },
         "status": {
-          ".read": "auth != null && root.child('users/' + auth.uid).exists()",
           ".write": "auth != null && auth.uid === $stationId"
         }
       }
     },
     "metadata": {
-      ".read": "auth != null && root.child('users/' + auth.uid).exists()",
+      ".read": "auth != null",
       ".write": false
     }
   }
