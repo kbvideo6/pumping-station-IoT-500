@@ -77,7 +77,7 @@ export const App = {
 
         <div class="card login-card scale-in">
           <div class="login-card__logo">
-            <i data-lucide="waves" style="width: 48px; height: 48px;"></i>
+            <img src="/logo.png" alt="Logo" style="width: 56px; height: 56px; object-fit: contain;">
           </div>
           <div class="login-card__title">
             <h2>Pumping Station IoT</h2>
@@ -160,7 +160,7 @@ export const App = {
       <!-- Top Header -->
       <header class="header">
         <div class="header__brand">
-          <i data-lucide="waves"></i>
+          <img src="/logo.png" alt="Logo" style="width: 28px; height: 28px; object-fit: contain; margin-right: 8px;">
           Pumping Station IoT
         </div>
         <div class="header__actions">
