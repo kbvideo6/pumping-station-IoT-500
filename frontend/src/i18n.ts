@@ -8,6 +8,7 @@ const translations: Record<Lang, Record<string, string>> = {
     sign_in_google: 'Sign in with Google',
     logout_confirm: 'Möchten Sie sich abmelden?',
     logout_success: 'Abgemeldet.',
+    logout: 'Abmelden',
     login_failed: 'Anmeldung fehlgeschlagen: ',
     unknown_error: 'Unbekannter Fehler',
 
@@ -183,6 +184,7 @@ const translations: Record<Lang, Record<string, string>> = {
     sign_in_google: 'Sign in with Google',
     logout_confirm: 'Are you sure you want to log out?',
     logout_success: 'Logged out.',
+    logout: 'Logout',
     login_failed: 'Sign-in failed: ',
     unknown_error: 'Unknown error',
 

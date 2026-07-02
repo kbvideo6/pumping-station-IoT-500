@@ -282,3 +282,117 @@
 .lang-flag {
   font-size: 1rem;
 }
+
+/* ── User Profile Dropdown ─────────────────────── */
+.header__user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition: background 150ms ease;
+}
+
+.header__user-menu:hover {
+  background: var(--bg-elevated);
+}
+
+.header__user-menu.open i[data-lucide="chevron-down"] {
+  transform: rotate(180deg);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2) 0;
+  min-width: 220px;
+  display: none;
+  flex-direction: column;
+  z-index: 150;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  transition: opacity 150ms ease, transform 150ms ease;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
+.header__user-menu.open .user-dropdown {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.user-dropdown__header {
+  padding: var(--space-2) var(--space-4);
+}
+
+.user-dropdown__name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-dropdown__email {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.user-dropdown__role {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-400);
+  background: var(--accent-900);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.user-dropdown__divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-2) 0;
+}
+
+.user-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: background 150ms ease, color 150ms ease;
+  cursor: pointer;
+}
+
+.user-dropdown__item:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.user-dropdown__item--danger {
+  color: var(--status-alert);
+}
+
+.user-dropdown__item--danger:hover {
+  background: var(--status-alert-dim);
+  color: var(--status-alert);
+}

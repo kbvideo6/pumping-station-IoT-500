@@ -186,7 +186,20 @@ export const App = {
           <div class="header__user-menu" id="btn-user-menu">
             ${AuthService.currentUser?.photoURL ? `<img src="${AuthService.currentUser.photoURL}" style="width:24px;height:24px;border-radius:12px;">` : '<i data-lucide="user"></i>'}
             <span style="font-size: 0.85rem; margin-right: 4px;">${AuthService.currentUser?.displayName || AuthService.currentUser?.email}</span>
-            <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-secondary);"></i>
+            <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-secondary); transition: transform 0.2s;"></i>
+
+            <div class="user-dropdown" id="user-dropdown">
+              <div class="user-dropdown__header">
+                <div class="user-dropdown__name">${AuthService.currentUser?.displayName || 'Operator'}</div>
+                <div class="user-dropdown__email">${AuthService.currentUser?.email || ''}</div>
+                <div class="user-dropdown__role">${AuthService.isAdmin() ? (i18n.currentLang === 'de' ? 'Administrator' : 'Administrator') : (i18n.currentLang === 'de' ? 'Betrachter' : 'Viewer')}</div>
+              </div>
+              <div class="user-dropdown__divider"></div>
+              <div class="user-dropdown__item user-dropdown__item--danger" id="dropdown-btn-logout">
+                <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                <span>${i18n.t('logout')}</span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -253,17 +266,27 @@ export const App = {
       this.handleRoute();
     });
 
-    // User menu logout trigger
-    document.getElementById('btn-user-menu')?.addEventListener('click', () => {
-      if (confirm(i18n.t('logout_confirm'))) {
-        AuthService.logout();
-      }
+    const langMenu = document.getElementById('btn-lang-menu');
+    const userMenu = document.getElementById('btn-user-menu');
+
+    // User Profile Dropdown Toggle
+    userMenu?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      langMenu?.classList.remove('open');
+      userMenu.classList.toggle('open');
+    });
+
+    // Logout Click inside Dropdown
+    document.getElementById('dropdown-btn-logout')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenu?.classList.remove('open');
+      AuthService.logout();
     });
 
     // Language Menu Dropdown triggers
-    const langMenu = document.getElementById('btn-lang-menu');
     langMenu?.addEventListener('click', (e) => {
       e.stopPropagation();
+      userMenu?.classList.remove('open');
       langMenu.classList.toggle('open');
     });
 
@@ -278,9 +301,10 @@ export const App = {
       });
     });
 
-    // Close language menu on clicking outside
+    // Close menus on clicking outside
     document.addEventListener('click', () => {
       langMenu?.classList.remove('open');
+      userMenu?.classList.remove('open');
     });
 
     // Sidebar navigation clicks
