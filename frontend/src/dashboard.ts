@@ -54,10 +54,9 @@ export const Dashboard = {
           </div>
         </div>
 
-        <!-- Stations Grid -->
         <div id="stations-grid" class="station-grid">
-          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
-            <div class="led led--ok" style="margin-right: 10px;"></div> ${i18n.t('loading_stations')}
+          <div style="grid-column: 1/-1;" class="loading-container">
+            <div class="spinner spinner--lg"></div>
           </div>
         </div>
       </div>

@@ -47,7 +47,7 @@ export const UserManagement = {
               </tr>
             </thead>
             <tbody id="users-table-body">
-              <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">${i18n.t('loading')}</td></tr>
+              <tr><td colspan="5"><div class="loading-container"><div class="spinner"></div></div></td></tr>
             </tbody>
           </table>
         </div>

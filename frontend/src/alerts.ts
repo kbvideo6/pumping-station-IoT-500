@@ -101,7 +101,7 @@ export const AlertsList = {
 
   async loadAlerts(): Promise<void> {
     const tbody = document.getElementById('alerts-table-body') as HTMLElement;
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color: var(--text-secondary);">${i18n.t('loading')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="loading-container"><div class="spinner"></div></div></td></tr>`;
 
     try {
       const alertsRef = collection(firestore, 'alerts');
