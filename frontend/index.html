@@ -11,18 +11,24 @@
   
   <link rel="icon" type="image/png" href="/logo.png">
   
-  <meta name="theme-color" content="#030712">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="/src/style.css">
+  
+  <script>
+    (function() {
+      var saved = localStorage.getItem('theme');
+      var theme = (saved === 'dark' || saved === 'light') ? saved : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body>
   <div id="app">
     <!-- App will mount here. Show a basic loading state initially -->
-    <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #030712; color: #f8fafc; font-family: 'Inter', sans-serif;">
+    <div id="initial-loader" style="height: 100vh; display: flex; align-items: center; justify-content: center; background-color: var(--bg-base); color: var(--text-primary); font-family: 'Inter', sans-serif;">
       <div style="text-align: center;">
         <img src="/logo.png" alt="Logo" width="56" height="56" style="margin-bottom: 16px; object-fit: contain; animation: pulse 2s infinite;">
-        <div style="font-size: 1.25rem; font-weight: 500; letter-spacing: 0.05em; color: #0891b2;">Pumping Station IoT</div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">Lade Anwendung...</div>
+        <div style="font-size: 1.25rem; font-weight: 500; letter-spacing: 0.05em; color: var(--accent-500);">Pumping Station IoT</div>
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;">Lade Anwendung...</div>
       </div>
     </div>
   </div>
