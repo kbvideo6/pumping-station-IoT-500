@@ -182,12 +182,20 @@ export const StationManagement = {
 
   async _provisionStation(stationId: string, name?: string, pumpPowerKW?: number): Promise<void> {
     try {
+      const stationObj = this._stations.find((s) => s.id === stationId);
+      const resolvedName = (name || stationObj?.name || stationId).trim();
+
       const provisionDeviceFn = httpsCallable<
-        { stationId: string; name?: string; pumpPowerKW?: number },
+        { stationId: string; stationName: string; name: string; pumpPowerKW?: number },
         { customToken: string }
       >(functions, 'provisionDevice');
 
-      const result = await provisionDeviceFn({ stationId, name, pumpPowerKW });
+      const result = await provisionDeviceFn({
+        stationId,
+        stationName: resolvedName,
+        name: resolvedName,
+        pumpPowerKW,
+      });
       const token = result.data.customToken;
 
       Utils.openModal(`
@@ -210,9 +218,11 @@ export const StationManagement = {
       });
 
       Utils.showToast(i18n.currentLang === 'de' ? `Station ${stationId} erfolgreich angelegt!` : `Station ${stationId} successfully created!`, 'success');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Provisioning failed:', error);
-      Utils.showToast(i18n.currentLang === 'de' ? 'Fehler bei der Provisionierung.' : 'Provisioning failed.', 'error');
+      const errObj = error as { message?: string; details?: string };
+      const errorMessage = errObj?.message || errObj?.details || (i18n.currentLang === 'de' ? 'Fehler bei der Provisionierung.' : 'Provisioning failed.');
+      Utils.showToast(errorMessage, 'error');
     }
   },
 

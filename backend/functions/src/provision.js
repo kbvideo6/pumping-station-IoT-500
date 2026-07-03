@@ -25,6 +25,7 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
     }
 
     const { stationId, stationName, pumpPowerKW, lat, lng } = data;
+    const resolvedName = (stationName || data.name || stationId || '').trim();
 
     // 3. Validation
     if (!stationId || typeof stationId !== 'string') {
@@ -34,10 +35,10 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
       );
     }
 
-    if (!stationName || typeof stationName !== 'string') {
+    if (!resolvedName) {
       throw new functions.https.HttpsError(
         'invalid-argument',
-        'stationName must be a valid non-empty string.'
+        'stationName or name must be a valid non-empty string.'
       );
     }
 
@@ -45,12 +46,7 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
 
     // 4. Check if station already exists
     const stationExistSnap = await db.ref(`/stations/${parsedStationId}`).once('value');
-    if (stationExistSnap.exists()) {
-      throw new functions.https.HttpsError(
-        'already-exists',
-        `A station with ID ${parsedStationId} already exists.`
-      );
-    }
+    const existingData = stationExistSnap.exists() ? stationExistSnap.val() : null;
 
     // 5. Generate Custom Token
     // We set the UID of the Custom Token to parsedStationId, so when the ESP32 authenticates,
@@ -60,36 +56,47 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
       stationId: parsedStationId
     });
 
-    // 6. Create station node in Realtime DB
+    // 6. Create or update station node in Realtime DB
+    const currentLive = (existingData && existingData.live) ? existingData.live : {
+      current: 0.0,
+      voltage: 230.0,
+      power: 0.0,
+      energy: 0.0,
+      frequency: 50.0,
+      powerFactor: 1.0,
+      alert: false,
+      alertType: null,
+      rssi: 0,
+      timestamp: admin.database.ServerValue.TIMESTAMP,
+      firmwareVersion: "0.0.0",
+      uptimeSeconds: 0
+    };
+
+    const currentConfig = (existingData && existingData.config) ? existingData.config : {};
+
     await db.ref(`/stations/${parsedStationId}`).set({
-      live: {
-        current: 0.0,
-        alert: false,
-        alertType: null,
-        rssi: 0,
-        timestamp: admin.database.ServerValue.TIMESTAMP,
-        firmwareVersion: "0.0.0",
-        uptimeSeconds: 0
-      },
+      live: currentLive,
       config: {
-        highThreshold: 18.0,
-        lowThreshold: 2.0,
-        reportIntervalSec: 30,
-        configPollIntervalSec: 300,
-        stationName: stationName.trim(),
-        pumpPowerKW: pumpPowerKW !== undefined ? parseFloat(pumpPowerKW) : 1.5,
-        lat: lat !== undefined ? parseFloat(lat) : 47.0707, // Default coordinates in Austria
-        lng: lng !== undefined ? parseFloat(lng) : 15.4395,
-        calibration: 20.0,
-        latestFirmware: {
+        highThreshold: currentConfig.highThreshold || 18.0,
+        lowThreshold: currentConfig.lowThreshold || 2.0,
+        highVoltageThreshold: currentConfig.highVoltageThreshold || 250.0,
+        lowVoltageThreshold: currentConfig.lowVoltageThreshold || 200.0,
+        reportIntervalSec: currentConfig.reportIntervalSec || 30,
+        configPollIntervalSec: currentConfig.configPollIntervalSec || 300,
+        stationName: resolvedName,
+        pumpPowerKW: pumpPowerKW !== undefined ? parseFloat(pumpPowerKW) : (currentConfig.pumpPowerKW || 1.5),
+        lat: lat !== undefined ? parseFloat(lat) : (currentConfig.lat || 47.0707),
+        lng: lng !== undefined ? parseFloat(lng) : (currentConfig.lng || 15.4395),
+        calibration: currentConfig.calibration || 20.0,
+        latestFirmware: currentConfig.latestFirmware || {
           version: "1.0.0",
           url: "",
           checksum: ""
         }
       },
       status: {
-        online: false,
-        lastSeen: admin.database.ServerValue.TIMESTAMP,
+        online: (existingData && existingData.status && existingData.status.online) || false,
+        lastSeen: (existingData && existingData.status && existingData.status.lastSeen) || admin.database.ServerValue.TIMESTAMP,
         provisionedAt: admin.database.ServerValue.TIMESTAMP
       }
     });
@@ -97,14 +104,16 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
     // 7. Store provisioning log in Firestore
     await firestore.collection('devices').doc(parsedStationId).set({
       stationId: parsedStationId,
-      stationName: stationName.trim(),
+      stationName: resolvedName,
       provisionedAt: admin.firestore.FieldValue.serverTimestamp(),
       provisionedBy: callerUid,
       active: true
-    });
+    }, { merge: true });
 
-    // 8. Increment station counter
-    await db.ref('metadata/totalStations').set(admin.database.ServerValue.increment(1));
+    // 8. Increment station counter if brand new
+    if (!existingData) {
+      await db.ref('metadata/totalStations').set(admin.database.ServerValue.increment(1));
+    }
 
     console.log(`Successfully provisioned station ${parsedStationId} by admin ${callerUid}`);
 
