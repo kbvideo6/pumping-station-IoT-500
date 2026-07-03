@@ -14,6 +14,7 @@ import { HistoryLogs } from './history';
 import { i18n } from './i18n';
 import type { LiveData, StationConfig } from './types';
 
+
 export const StationDetail = {
   _stationId: null as string | null,
   _liveUnsub: null as Unsubscribe | null,
@@ -21,12 +22,14 @@ export const StationDetail = {
   _chart: null as Chart | null,
   _chartLabels: [] as string[],
   _chartData: [] as number[],
+  _chartVoltageData: [] as number[],
   _themeChangeListener: null as ((e: Event) => void) | null,
 
   render(container: HTMLElement, stationId: string): void {
     this._stationId = stationId;
     this._chartLabels = [];
     this._chartData = [];
+    this._chartVoltageData = [];
 
     container.innerHTML = `
       <div class="content-wrapper">
@@ -46,19 +49,35 @@ export const StationDetail = {
           <div id="station-header-actions" style="display: flex; gap: var(--space-3);"></div>
         </div>
 
-        <!-- Live Metric Cards -->
+        <!-- Live Metric Cards (8 cards: 4 existing + 4 PZEM) -->
         <div class="detail-metrics">
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('current_amperage')}</div>
             <div id="metric-current" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- A</div>
           </div>
           <div class="card">
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('signal_strength')}</div>
-            <div id="metric-rssi" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- dBm</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('voltage')}</div>
+            <div id="metric-voltage" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- V</div>
           </div>
           <div class="card">
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('uptime')}</div>
-            <div id="metric-uptime" style="font-size: 2rem; font-weight: 700; font-family: monospace;">--</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('power')}</div>
+            <div id="metric-power" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- W</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('energy_kwh')}</div>
+            <div id="metric-energy" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- kWh</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('power_factor')}</div>
+            <div id="metric-pf" style="font-size: 2rem; font-weight: 700; font-family: monospace;">--</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('frequency_hz')}</div>
+            <div id="metric-freq" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- Hz</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('signal_strength')}</div>
+            <div id="metric-rssi" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- dBm</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('battery')}</div>
@@ -66,11 +85,15 @@ export const StationDetail = {
           </div>
         </div>
 
-        <!-- Realtime Chart -->
+        <!-- Realtime Chart (dual-axis: Current + Voltage) -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
             <h3>${i18n.t('live_view')}</h3>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">${i18n.t('last_50_points')}</span>
+            <div style="display:flex;gap:var(--space-4);align-items:center;">
+              <span style="display:flex;align-items:center;gap:4px;font-size:0.75rem;color:rgba(6,182,212,1);"><span style="display:inline-block;width:12px;height:2px;background:rgba(6,182,212,1);"></span>${i18n.t('current_a')}</span>
+              <span style="display:flex;align-items:center;gap:4px;font-size:0.75rem;color:rgba(251,191,36,1);"><span style="display:inline-block;width:12px;height:2px;background:rgba(251,191,36,1);"></span>${i18n.t('voltage_v')}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${i18n.t('last_50_points')}</span>
+            </div>
           </div>
           <div class="chart-container">
             <canvas id="live-chart"></canvas>
@@ -137,21 +160,37 @@ export const StationDetail = {
 
   _initChart(): void {
     const ctx = (document.getElementById('live-chart') as HTMLCanvasElement).getContext('2d')!;
+    const gridColor = () => getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.08)';
+    const tickColor = () => getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b';
 
     this._chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: this._chartLabels,
-        datasets: [{
-          label: i18n.t('current_a'),
-          data: this._chartData,
-          borderColor: 'rgba(6, 182, 212, 1)',
-          backgroundColor: 'rgba(6, 182, 212, 0.05)',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: true,
-          tension: 0.3,
-        }],
+        datasets: [
+          {
+            label: i18n.t('current_a'),
+            data: this._chartData,
+            yAxisID: 'yA',
+            borderColor: 'rgba(6, 182, 212, 1)',
+            backgroundColor: 'rgba(6, 182, 212, 0.05)',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.3,
+          },
+          {
+            label: i18n.t('voltage_v'),
+            data: this._chartVoltageData,
+            yAxisID: 'yV',
+            borderColor: 'rgba(251, 191, 36, 1)',
+            backgroundColor: 'rgba(251, 191, 36, 0.04)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.3,
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -159,10 +198,20 @@ export const StationDetail = {
         animation: { duration: 300 },
         scales: {
           x: { display: false },
-          y: {
+          yA: {
+            type: 'linear',
+            position: 'left',
             min: 0,
-            grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.08)' },
-            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b', callback: (v) => `${v} A` },
+            grid: { color: gridColor() },
+            ticks: { color: tickColor(), callback: (v) => `${v} A` },
+          },
+          yV: {
+            type: 'linear',
+            position: 'right',
+            min: 180,
+            max: 260,
+            grid: { drawOnChartArea: false },
+            ticks: { color: 'rgba(251, 191, 36, 0.8)', callback: (v) => `${v} V` },
           },
         },
         plugins: {
@@ -171,6 +220,7 @@ export const StationDetail = {
             annotations: {
               highLine: {
                 type: 'line' as const,
+                yScaleID: 'yA',
                 yMin: 18,
                 yMax: 18,
                 borderColor: 'rgba(239, 68, 68, 0.5)',
@@ -193,8 +243,8 @@ export const StationDetail = {
 
     this._themeChangeListener = () => {
       if (this._chart) {
-        this._chart.options.scales!.y!.grid!.color = getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.08)';
-        this._chart.options.scales!.y!.ticks!.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b';
+        this._chart.options.scales!.yA!.grid!.color = gridColor();
+        this._chart.options.scales!.yA!.ticks!.color = tickColor();
         this._chart.update();
       }
     };
@@ -207,20 +257,36 @@ export const StationDetail = {
       const live = snapshot.val() as LiveData | null;
       if (!live) return;
 
-      // Update metric cards
+      // -- Current
       (document.getElementById('metric-current') as HTMLElement).innerText =
         Utils.formatCurrent(live.current);
+
+      // -- Voltage
+      (document.getElementById('metric-voltage') as HTMLElement).innerText =
+        Utils.formatVoltage(live.voltage);
+
+      // -- Power
+      (document.getElementById('metric-power') as HTMLElement).innerText =
+        Utils.formatPower(live.power);
+
+      // -- Energy (kWh)
+      (document.getElementById('metric-energy') as HTMLElement).innerText =
+        Utils.formatEnergy(live.energy);
+
+      // -- Power Factor with color coding
+      const pfEl = document.getElementById('metric-pf') as HTMLElement;
+      pfEl.innerText = Utils.formatPowerFactor(live.powerFactor);
+      pfEl.className = Utils.powerFactorClass(live.powerFactor);
+
+      // -- Frequency
+      (document.getElementById('metric-freq') as HTMLElement).innerText =
+        live.frequency !== undefined ? `${live.frequency.toFixed(1)} Hz` : '-- Hz';
+
+      // -- RSSI
       (document.getElementById('metric-rssi') as HTMLElement).innerText =
         live.rssi !== undefined ? `${live.rssi} dBm` : '-- dBm';
 
-      // Uptime
-      if (live.uptimeSeconds !== undefined) {
-        const h = Math.floor(live.uptimeSeconds / 3600);
-        const m = Math.floor((live.uptimeSeconds % 3600) / 60);
-        (document.getElementById('metric-uptime') as HTMLElement).innerText = `${h}h ${m}m`;
-      }
-
-      // Battery
+      // -- Battery
       const battEl = document.getElementById('metric-battery') as HTMLElement;
       if (live.battPercent !== undefined && live.battPercent >= 0) {
         battEl.innerText = `${live.battPercent.toFixed(0)}%`;
@@ -243,9 +309,11 @@ export const StationDetail = {
       const now = new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       this._chartLabels.push(now);
       this._chartData.push(live.current ?? 0);
+      this._chartVoltageData.push(live.voltage ?? 0);
       if (this._chartLabels.length > 50) {
         this._chartLabels.shift();
         this._chartData.shift();
+        this._chartVoltageData.shift();
       }
       this._chart?.update('none');
     });
@@ -362,6 +430,7 @@ export const StationDetail = {
       window.removeEventListener('themechange', this._themeChangeListener);
       this._themeChangeListener = null;
     }
+    this._chartVoltageData = [];
     HistoryLogs.destroy();
     AlertsList.destroy();
     this._stationId = null;

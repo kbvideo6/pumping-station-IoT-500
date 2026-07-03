@@ -1,4 +1,6 @@
-.pio/build/esp32-s3-devkitc-1/src/main.cpp.o: src/main.cpp \
+.pio/build/esp32-s3-devkitc-1/lib718/PZEM-004T-v30/PZEM004Tv30.cpp.o: \
+ .pio/libdeps/esp32-s3-devkitc-1/PZEM-004T-v30/src/PZEM004Tv30.cpp \
+ .pio/libdeps/esp32-s3-devkitc-1/PZEM-004T-v30/src/PZEM004Tv30.h \
  C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
  C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp_arduino_version.h \
  C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/freertos/include/freertos/FreeRTOS.h \
@@ -178,11 +180,4 @@
  C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/spi_flash/include/esp_spi_flash_counters.h \
  C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/soc/esp32/spiram.h \
  C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/cores/esp32/io_pin_remap.h \
- C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
- C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_system/include/esp_task_wdt.h \
- C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
- C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h \
- src/config.h src/led.h src/pzem_sensor.h \
- .pio/libdeps/esp32-s3-devkitc-1/PZEM-004T-v30/src/PZEM004Tv30.h \
- src/modem.h src/firebase_auth.h src/firebase_data.h src/alerts.h \
- src/ota.h
+ C:/Users/nodeModule/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h

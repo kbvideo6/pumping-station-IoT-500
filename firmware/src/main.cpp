@@ -3,7 +3,7 @@
 #include <Wire.h>
 #include "config.h"
 #include "led.h"
-#include "sensor.h"
+#include "pzem_sensor.h"
 #include "modem.h"
 #include "firebase_auth.h"
 #include "firebase_data.h"
@@ -12,7 +12,7 @@
 
 // Hardware instances
 StatusLED statusLed(STATUS_LED_PIN);
-CTSensor ctSensor(CT_CLAMP_ADC_PIN, CT_CLAMP_CALIBRATION, ADC_VREF, ADC_RESOLUTION, BIAS_VOLTAGE);
+PZEMSensor pzemSensor(Serial2, PZEM_UART_RX_PIN, PZEM_UART_TX_PIN, PZEM_MODBUS_ADDR);
 A7670Modem modem(Serial1, MODEM_PWRKEY_PIN, MODEM_RESET_PIN);
 FirebaseAuth firebaseAuth(modem, FIREBASE_API_KEY, DEFAULT_CUSTOM_TOKEN);
 FirebaseData firebaseData(modem, firebaseAuth, FIREBASE_DB_URL, DEFAULT_STATION_ID);
@@ -27,7 +27,7 @@ DeviceConfig deviceConfig = {
   DEFAULT_CONFIG_POLL_MS / 1000,
   "Default Station",
   1.5,
-  CT_CLAMP_CALIBRATION,
+  1.0, // calibration (unused with PZEM but kept for config schema compatibility)
   "", "", ""
 };
 
@@ -38,9 +38,14 @@ unsigned long lastConfigPollMs = 0;
 unsigned long lastTokenRefreshMs = 0;
 unsigned long bootTimeMs = 0;
 
-// Sensor reading average buffer
-float currentAccumulator = 0;
-int currentSampleCount = 0;
+// Sensor reading average buffers (one per PZEM metric)
+float accumCurrent     = 0;
+float accumVoltage     = 0;
+float accumPower       = 0;
+float accumFrequency   = 0;
+float accumPowerFactor = 0;
+float lastEnergy       = 0; // kWh is cumulative — take last reading, not average
+int   sensorSampleCount = 0;
 
 // GPS tracking
 double gpsLat = 0.0;
@@ -61,8 +66,8 @@ void setup() {
   statusLed.begin();
   statusLed.setPattern(LED_PATTERN_SOLID);
 
-  // Initialize CT Sensor
-  ctSensor.begin();
+  // Initialize PZEM-004T Power Meter
+  pzemSensor.begin();
 
   // Initialize UART communication with A7670E Modem
   Serial1.begin(MODEM_UART_BAUDRATE, SERIAL_8N1, MODEM_UART_RX_PIN, MODEM_UART_TX_PIN);
@@ -136,39 +141,57 @@ void loop() {
 
   unsigned long now = millis();
 
-  // 1. Read Sensor current RMS periodically (every 5 seconds)
+  // 1. Read PZEM-004T sensor periodically (every 5 seconds)
   if (now - lastSensorReadMs >= SENSOR_SAMPLING_INTERVAL_MS) {
-    float reading = ctSensor.readCurrentRMS();
-    currentAccumulator += reading;
-    currentSampleCount++;
-    lastSensorReadMs = now;
-    
-    Serial.printf("[Sensor] Current: %.2f A (Sample %d)\n", reading, currentSampleCount);
-    
-    // Process reading directly for immediate edge threshold warnings
-    edgeAlert.processReading(reading, deviceConfig.highThreshold, deviceConfig.lowThreshold);
+    PZEMReading r;
+    if (pzemSensor.read(r)) {
+      accumCurrent     += r.current;
+      accumVoltage     += r.voltage;
+      accumPower       += r.power;
+      accumFrequency   += r.frequency;
+      accumPowerFactor += r.powerFactor;
+      lastEnergy        = r.energy; // cumulative kWh — keep latest
+      sensorSampleCount++;
+      lastSensorReadMs = now;
+
+      Serial.printf("[PZEM] %.2fA  %.1fV  %.1fW  %.3fkWh  %.1fHz  PF:%.2f (Sample %d)\n",
+                    r.current, r.voltage, r.power, r.energy,
+                    r.frequency, r.powerFactor, sensorSampleCount);
+
+      // Check thresholds on each live sample for edge alerting
+      edgeAlert.processReading(r.current, deviceConfig.highThreshold, deviceConfig.lowThreshold);
+    } else {
+      Serial.println("[PZEM] Read failed — skipping sample.");
+      lastSensorReadMs = now; // avoid hammering on failure
+    }
   }
 
   // 2. Report average readings & alerts to Firebase DB
   unsigned long reportIntervalMs = deviceConfig.reportIntervalSec * 1000;
-  if (now - lastDataReportMs >= reportIntervalMs && currentSampleCount > 0) {
-    float averageCurrent = currentAccumulator / currentSampleCount;
-    
+  if (now - lastDataReportMs >= reportIntervalMs && sensorSampleCount > 0) {
+    float avgCurrent     = accumCurrent     / sensorSampleCount;
+    float avgVoltage     = accumVoltage     / sensorSampleCount;
+    float avgPower       = accumPower       / sensorSampleCount;
+    float avgFrequency   = accumFrequency   / sensorSampleCount;
+    float avgPowerFactor = accumPowerFactor / sensorSampleCount;
+    // energy is cumulative from the PZEM chip — use the latest reading
+    float reportEnergy   = lastEnergy;
+
     // Check edge warnings on the reported average
     CurrentAlertType activeAlert = edgeAlert.processReading(
-      averageCurrent, 
-      deviceConfig.highThreshold, 
+      avgCurrent,
+      deviceConfig.highThreshold,
       deviceConfig.lowThreshold
     );
-    
+
     bool hasAlert = (activeAlert != ALERT_NONE);
     const char* alertTypeStr = edgeAlert.getAlertTypeString();
-    
+
     int rssi = modem.getSignalQuality();
     uint32_t uptimeSec = (millis() - bootTimeMs) / 1000;
 
-    Serial.printf("[Reporter] Sending average current: %.2f A (Alert: %s, RSSI: %d dBm)\n", 
-                  averageCurrent, alertTypeStr, rssi);
+    Serial.printf("[Reporter] Avg: %.2fA  %.1fV  %.1fW  %.3fkWh  PF:%.2f  (Alert: %s, RSSI: %d dBm)\n",
+                  avgCurrent, avgVoltage, avgPower, reportEnergy, avgPowerFactor, alertTypeStr, rssi);
 
     // Set LED pattern to alert if warning triggered
     if (hasAlert) {
@@ -178,9 +201,9 @@ void loop() {
     }
 
     // Read battery voltage & SOC from MAX17048 fuel gauge
-    float battVolts = -1.0;
+    float battVolts   = -1.0;
     float battPercent = -1.0;
-    
+
     uint16_t vcell = 0xFFFF;
     Wire.beginTransmission(0x36);
     Wire.write(0x02); // VCELL register
@@ -193,7 +216,7 @@ void loop() {
         battVolts = (float)vcell * 0.00125 / 16.0;
       }
     }
-    
+
     uint16_t soc = 0xFFFF;
     Wire.beginTransmission(0x36);
     Wire.write(0x04); // SOC register
@@ -211,12 +234,22 @@ void loop() {
       Serial.printf("[Reporter] Battery: %.2f V, Charge: %.1f%%\n", battVolts, battPercent);
     }
 
-    // PUT to DB
-    firebaseData.putLiveData(averageCurrent, hasAlert, alertTypeStr, rssi, uptimeSec, "1.0.0", battVolts, battPercent);
+    // PUT to DB with all PZEM fields
+    firebaseData.putLiveData(
+      avgCurrent, avgVoltage, avgPower, reportEnergy,
+      avgFrequency, avgPowerFactor,
+      hasAlert, alertTypeStr,
+      rssi, uptimeSec, "1.0.0",
+      battVolts, battPercent
+    );
 
-    // Reset buffer accumulation
-    currentAccumulator = 0;
-    currentSampleCount = 0;
+    // Reset accumulation buffers
+    accumCurrent     = 0;
+    accumVoltage     = 0;
+    accumPower       = 0;
+    accumFrequency   = 0;
+    accumPowerFactor = 0;
+    sensorSampleCount = 0;
     lastDataReportMs = now;
   }
 

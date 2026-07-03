@@ -15,6 +15,11 @@ interface HistoryRecord {
   id: string;
   timestamp: Timestamp | null;
   current: number;
+  voltage: number | null;
+  power: number | null;
+  energy: number | null;
+  frequency: number | null;
+  powerFactor: number | null;
   alert: boolean;
   alertType: string | null;
   rssi: number | null;
@@ -62,12 +67,16 @@ export const HistoryLogs = {
               <tr>
                 <th>${i18n.t('col_timestamp')}</th>
                 <th>${i18n.t('current_a')}</th>
+                <th>${i18n.t('col_voltage')}</th>
+                <th>${i18n.t('col_power')}</th>
+                <th>${i18n.t('col_energy')}</th>
+                <th>${i18n.t('col_pf')}</th>
                 <th>${i18n.t('alert')}</th>
                 <th>RSSI</th>
               </tr>
             </thead>
             <tbody id="history-table-body">
-              <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-secondary);">
+              <tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">
                 ${i18n.t('select_range_prompt')}
               </td></tr>
             </tbody>
@@ -107,7 +116,7 @@ export const HistoryLogs = {
     toDate.setHours(23, 59, 59, 999);
 
     const tbody = document.getElementById('history-table-body') as HTMLElement;
-    tbody.innerHTML = `<tr><td colspan="4"><div class="loading-container"><div class="spinner"></div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="loading-container"><div class="spinner"></div></div></td></tr>`;
 
     try {
       const q = query(
@@ -125,11 +134,16 @@ export const HistoryLogs = {
         const data = d.data();
         this._records.push({
           id: d.id,
-          timestamp: data.timestamp as Timestamp | null,
-          current: data.current as number ?? 0,
-          alert: data.alert as boolean ?? false,
-          alertType: data.alertType as string | null ?? null,
-          rssi: data.rssi as number | null ?? null,
+          timestamp:   data.timestamp as Timestamp | null,
+          current:     data.current     as number  ?? 0,
+          voltage:     data.voltage     as number  | null ?? null,
+          power:       data.power       as number  | null ?? null,
+          energy:      data.energy      as number  | null ?? null,
+          frequency:   data.frequency   as number  | null ?? null,
+          powerFactor: data.powerFactor as number  | null ?? null,
+          alert:       data.alert       as boolean ?? false,
+          alertType:   data.alertType   as string  | null ?? null,
+          rssi:        data.rssi        as number  | null ?? null,
         });
       });
 
@@ -144,7 +158,7 @@ export const HistoryLogs = {
       }
     } catch (error) {
       console.error('Error loading history:', error);
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--status-alert); padding:30px;">${i18n.t('history_load_error')}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--status-alert); padding:30px;">${i18n.t('history_load_error')}</td></tr>`;
     }
   },
 
@@ -156,35 +170,60 @@ export const HistoryLogs = {
       this._historyChart = null;
     }
 
-    const labels = this._records.map((r) => {
+    const labels  = this._records.map((r) => {
       const ts = r.timestamp as Timestamp | null;
       return ts ? Utils.formatTimestamp(ts.toDate()) : '';
     });
-    const values = this._records.map((r) => r.current);
+    const currentValues = this._records.map((r) => r.current);
+    const voltageValues = this._records.map((r) => r.voltage ?? 0);
 
     this._historyChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
-        datasets: [{
-          label: i18n.t('current_a'),
-          data: values,
-          borderColor: 'rgba(6, 182, 212, 1)',
-          backgroundColor: 'rgba(6, 182, 212, 0.05)',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          fill: true,
-          tension: 0.3,
-        }],
+        datasets: [
+          {
+            label: i18n.t('current_a'),
+            data: currentValues,
+            yAxisID: 'yA',
+            borderColor: 'rgba(6, 182, 212, 1)',
+            backgroundColor: 'rgba(6, 182, 212, 0.05)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.3,
+          },
+          {
+            label: i18n.t('voltage_v'),
+            data: voltageValues,
+            yAxisID: 'yV',
+            borderColor: 'rgba(251, 191, 36, 1)',
+            backgroundColor: 'rgba(251, 191, 36, 0.04)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.3,
+          },
+        ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           x: { display: false },
-          y: {
+          yA: {
+            type: 'linear',
+            position: 'left',
             grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.08)' },
-            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b' },
+            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b', callback: (v) => `${v} A` },
+          },
+          yV: {
+            type: 'linear',
+            position: 'right',
+            min: 180,
+            max: 260,
+            grid: { drawOnChartArea: false },
+            ticks: { color: 'rgba(251, 191, 36, 0.8)', callback: (v) => `${v} V` },
           },
         },
         plugins: {
@@ -195,8 +234,8 @@ export const HistoryLogs = {
 
     this._themeChangeListener = () => {
       if (this._historyChart) {
-        this._historyChart.options.scales!.y!.grid!.color = getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.08)';
-        this._historyChart.options.scales!.y!.ticks!.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b';
+        this._historyChart.options.scales!.yA!.grid!.color = getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(0,0,0,0.08)';
+        this._historyChart.options.scales!.yA!.ticks!.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#64748b';
         this._historyChart.update();
       }
     };
@@ -207,7 +246,7 @@ export const HistoryLogs = {
     const tbody = document.getElementById('history-table-body') as HTMLElement;
 
     if (this._records.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-secondary);">${i18n.t('no_data_range')}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-secondary);">${i18n.t('no_data_range')}</td></tr>`;
       return;
     }
 
@@ -218,10 +257,16 @@ export const HistoryLogs = {
         ? `<span class="badge badge--alert">${Utils.getAlertLabel(r.alertType)}</span>`
         : `<span class="badge badge--ok">${i18n.t('normal')}</span>`;
 
+      const pfClass = Utils.powerFactorClass(r.powerFactor);
+
       return `
         <tr>
           <td class="td--mono" style="font-size:0.8rem;">${dateStr}</td>
           <td class="td--primary td--mono">${r.current.toFixed(2)}</td>
+          <td class="td--mono">${r.voltage !== null ? r.voltage.toFixed(1) : '--'}</td>
+          <td class="td--mono">${r.power !== null ? (r.power >= 1000 ? (r.power/1000).toFixed(2)+' k' : r.power.toFixed(0)) : '--'}</td>
+          <td class="td--mono">${r.energy !== null ? r.energy.toFixed(3) : '--'}</td>
+          <td class="td--mono ${pfClass}">${r.powerFactor !== null ? r.powerFactor.toFixed(2) : '--'}</td>
           <td>${alertCell}</td>
           <td>${r.rssi !== null ? r.rssi + ' dBm' : '--'}</td>
         </tr>
@@ -233,13 +278,13 @@ export const HistoryLogs = {
     if (this._records.length === 0) return;
 
     const header = i18n.currentLang === 'de'
-      ? 'Zeitpunkt,Stromstärke (A),Alarm,Alarmtyp,RSSI (dBm)\n'
-      : 'Timestamp,Current (A),Alert,AlertType,RSSI (dBm)\n';
-      
+      ? 'Zeitpunkt,Stromstärke (A),Spannung (V),Leistung (W),Energie (kWh),Leistungsfaktor,Alarm,Alarmtyp,RSSI (dBm)\n'
+      : 'Timestamp,Current (A),Voltage (V),Power (W),Energy (kWh),Power Factor,Alert,AlertType,RSSI (dBm)\n';
+
     const rows = [...this._records].reverse().map((r) => {
       const ts = r.timestamp as Timestamp | null;
       const dateStr = ts ? ts.toDate().toISOString() : '';
-      return `${dateStr},${r.current.toFixed(3)},${r.alert},${r.alertType ?? ''},${r.rssi ?? ''}`;
+      return `${dateStr},${r.current.toFixed(3)},${r.voltage ?? ''},${r.power ?? ''},${r.energy ?? ''},${r.powerFactor ?? ''},${r.alert},${r.alertType ?? ''},${r.rssi ?? ''}`;
     }).join('\n');
 
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
@@ -251,7 +296,7 @@ export const HistoryLogs = {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     Utils.showToast(
       i18n.currentLang === 'de'
         ? 'CSV-Datei erfolgreich heruntergeladen.'

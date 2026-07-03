@@ -9,10 +9,12 @@ if (apiKey) {
 
 exports.sendAlertEmail = async (to, alert) => {
   const alertTypeLabels = {
-    'HIGH_CURRENT': '⚠️ High Current Alert',
-    'LOW_CURRENT': '⚠️ Low Current Alert',
-    'NO_CURRENT': '🔴 No Current Detected',
-    'DEVICE_OFFLINE': '🔴 Device Offline'
+    'HIGH_CURRENT':  '⚠️ High Current Alert',
+    'LOW_CURRENT':   '⚠️ Low Current Alert',
+    'NO_CURRENT':    '🔴 No Current Detected',
+    'HIGH_VOLTAGE':  '⚠️ High Voltage Alert',
+    'LOW_VOLTAGE':   '⚠️ Low Voltage Alert',
+    'DEVICE_OFFLINE':'🔴 Device Offline'
   };
 
   const subject = `${alertTypeLabels[alert.type] || 'Alert'} — ${alert.stationName}`;
@@ -33,6 +35,11 @@ exports.sendAlertEmail = async (to, alert) => {
           <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Reading</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; font-family: monospace;">${alert.currentValue !== null ? alert.currentValue + ' A' : 'N/A'}</td>
         </tr>
+        ${alert.voltageValue !== undefined && alert.voltageValue !== null ? `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Voltage</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; font-family: monospace;">${alert.voltageValue} V</td>
+        </tr>` : ''}
         <tr>
           <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Threshold</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; font-family: monospace;">${alert.threshold !== null ? alert.threshold + ' A' : 'N/A'}</td>

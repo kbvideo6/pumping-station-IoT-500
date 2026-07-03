@@ -46,13 +46,18 @@ exports.onLiveDataWrite = functions.database
         thresholdValue = config.highThreshold !== undefined ? config.highThreshold : 18.0;
       } else if (data.alertType === 'LOW_CURRENT') {
         thresholdValue = config.lowThreshold !== undefined ? config.lowThreshold : 2.0;
+      } else if (data.alertType === 'HIGH_VOLTAGE') {
+        thresholdValue = config.highVoltageThreshold !== undefined ? config.highVoltageThreshold : 250.0;
+      } else if (data.alertType === 'LOW_VOLTAGE') {
+        thresholdValue = config.lowVoltageThreshold !== undefined ? config.lowVoltageThreshold : 200.0;
       }
 
       const alertDoc = {
         stationId,
         stationName: config.stationName || stationId,
         type: data.alertType,
-        currentValue: data.current !== undefined ? data.current : null,
+        currentValue:  data.current !== undefined ? data.current  : null,
+        voltageValue:  data.voltage !== undefined ? data.voltage  : null,
         threshold: thresholdValue,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         acknowledged: false,

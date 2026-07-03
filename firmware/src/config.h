@@ -25,13 +25,11 @@
 #define MODEM_UART_BAUDRATE   115200
 
 #define STATUS_LED_PIN        2    // Onboard status indicator LED pin
-#define CT_CLAMP_ADC_PIN      1    // GPIO1 (ADC1_CH0) for current reading
 
-// Sensor calibration factors
-#define CT_CLAMP_CALIBRATION  20.0 // 20A / 1V output sensor SCT-013-020
-#define ADC_VREF              3.3  // ESP32 reference voltage
-#define ADC_RESOLUTION        4095.0 // 12-bit ADC
-#define BIAS_VOLTAGE          1.65 // Midpoint bias voltage
+// PZEM-004T Power Meter — Serial2 UART pins
+#define PZEM_UART_RX_PIN      16   // ESP32-S3 GPIO16 → PZEM TX
+#define PZEM_UART_TX_PIN      15   // ESP32-S3 GPIO15 → PZEM RX
+#define PZEM_MODBUS_ADDR      0xF8 // Default broadcast address
 
 // Default intervals in milliseconds (will be updated dynamically by server config)
 #define DEFAULT_REPORT_INTERVAL_MS    30000   // 30 seconds
@@ -41,10 +39,12 @@
 #define OTA_CHECK_INTERVAL_MS         86400000 // 24 hours
 
 // Edge alerting thresholds (overridden by server configurations)
-#define DEFAULT_HIGH_CURRENT_THRESHOLD 18.0
-#define DEFAULT_LOW_CURRENT_THRESHOLD  2.0
-#define ALERT_DEBOUNCE_COUNT           3
-#define ALERT_COOLDOWN_MS              300000  // 5 minutes
+#define DEFAULT_HIGH_CURRENT_THRESHOLD  18.0
+#define DEFAULT_LOW_CURRENT_THRESHOLD   2.0
+#define DEFAULT_HIGH_VOLTAGE_THRESHOLD  250.0 // V — overvoltage alert
+#define DEFAULT_LOW_VOLTAGE_THRESHOLD   200.0 // V — undervoltage alert
+#define ALERT_DEBOUNCE_COUNT            3
+#define ALERT_COOLDOWN_MS               300000  // 5 minutes
 
 // Safety Watchdog duration in seconds
 #define WATCHDOG_TIMEOUT_SECONDS       120

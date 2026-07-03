@@ -80,6 +80,11 @@ const translations: Record<Lang, Record<string, string>> = {
     // Station Detail
     back: 'Zurück',
     current_amperage: 'Aktuelle Stromstärke',
+    voltage: 'Netzspannung',
+    power: 'Wirkleistung',
+    energy_kwh: 'Energie (kWh)',
+    power_factor: 'Leistungsfaktor',
+    frequency_hz: 'Netzfrequenz',
     signal_strength: 'Signalstärke',
     uptime: 'Laufzeit',
     battery: 'Batterie',
@@ -89,6 +94,7 @@ const translations: Record<Lang, Record<string, string>> = {
     tab_history: 'Verlauf',
     tab_config: 'Konfiguration',
     current_a: 'Strom (A)',
+    voltage_v: 'Spannung (V)',
     chart_limit: 'Grenzwert',
     device_config: 'Gerätekonfiguration',
     station_name: 'Station Name',
@@ -114,6 +120,10 @@ const translations: Record<Lang, Record<string, string>> = {
     no: 'Nein',
     no_data_range: 'Keine Daten für diesen Zeitraum vorhanden.',
     history_load_error: 'Fehler beim Laden des Verlaufs.',
+    col_voltage: 'Spannung (V)',
+    col_power: 'Leistung (W)',
+    col_energy: 'Energie (kWh)',
+    col_pf: 'LF',
 
     // Station Management
     manage_stations: 'Stationen verwalten',
@@ -168,6 +178,8 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_HIGH_CURRENT: 'Überstrom',
     alert_LOW_CURRENT: 'Unterstrom / Trockenlauf',
     alert_NO_CURRENT: 'Stromlos / Fehler',
+    alert_HIGH_VOLTAGE: 'Überspannung',
+    alert_LOW_VOLTAGE: 'Unterspannung',
     alert_DEVICE_OFFLINE: 'Verbindung verloren',
     alert_UNKNOWN: 'Unbekannt',
 
@@ -256,6 +268,11 @@ const translations: Record<Lang, Record<string, string>> = {
     // Station Detail
     back: 'Back',
     current_amperage: 'Current Amperage',
+    voltage: 'Mains Voltage',
+    power: 'Active Power',
+    energy_kwh: 'Energy (kWh)',
+    power_factor: 'Power Factor',
+    frequency_hz: 'Mains Frequency',
     signal_strength: 'Signal Strength',
     uptime: 'Uptime',
     battery: 'Battery',
@@ -265,6 +282,7 @@ const translations: Record<Lang, Record<string, string>> = {
     tab_history: 'History',
     tab_config: 'Configuration',
     current_a: 'Current (A)',
+    voltage_v: 'Voltage (V)',
     chart_limit: 'Limit',
     device_config: 'Device Configuration',
     station_name: 'Station Name',
@@ -290,6 +308,10 @@ const translations: Record<Lang, Record<string, string>> = {
     no: 'No',
     no_data_range: 'No data available for this period.',
     history_load_error: 'Error loading history.',
+    col_voltage: 'Voltage (V)',
+    col_power: 'Power (W)',
+    col_energy: 'Energy (kWh)',
+    col_pf: 'PF',
 
     // Station Management
     manage_stations: 'Manage Stations',
@@ -344,6 +366,8 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_HIGH_CURRENT: 'Overcurrent',
     alert_LOW_CURRENT: 'Undercurrent / Dry Run',
     alert_NO_CURRENT: 'No Current / Fault',
+    alert_HIGH_VOLTAGE: 'Overvoltage',
+    alert_LOW_VOLTAGE: 'Undervoltage',
     alert_DEVICE_OFFLINE: 'Connection Lost',
     alert_UNKNOWN: 'Unknown',
 

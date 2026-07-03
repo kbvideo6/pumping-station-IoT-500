@@ -6,7 +6,12 @@ FirebaseData::FirebaseData(A7670Modem& modem, FirebaseAuth& auth, const char* db
   _stationId = stationId;
 }
 
-bool FirebaseData::putLiveData(float current, bool alert, const char* alertType, int rssi, uint32_t uptimeSec, const char* firmwareVersion, float battVolts, float battPercent) {
+bool FirebaseData::putLiveData(
+    float current, float voltage, float power, float energy,
+    float frequency, float powerFactor,
+    bool alert, const char* alertType,
+    int rssi, uint32_t uptimeSec, const char* firmwareVersion,
+    float battVolts, float battPercent) {
   if (!_auth.isTokenValid()) {
     if (!_auth.refreshToken()) {
       Serial.println("[Data] Auth token invalid and refresh failed. Skipping telemetry write.");
@@ -16,20 +21,28 @@ bool FirebaseData::putLiveData(float current, bool alert, const char* alertType,
 
   String url = _dbUrl + String("/stations/") + _stationId + String("/live.json?auth=") + String(_auth.getIdToken());
   
-  StaticJsonDocument<512> doc;
-  doc["current"] = current;
+  StaticJsonDocument<768> doc;
+  // Core current readings
+  doc["current"]     = current;
+  doc["voltage"]     = voltage;
+  doc["power"]       = power;
+  doc["energy"]      = energy;
+  doc["frequency"]   = frequency;
+  doc["powerFactor"] = powerFactor;
+
+  // Alert state
   doc["alert"] = alert;
-  
   if (alert && alertType) {
     doc["alertType"] = alertType;
   } else {
     doc["alertType"] = nullptr;
   }
-  
-  doc["rssi"] = rssi;
-  doc["uptimeSeconds"] = uptimeSec;
+
+  // Modem / device metadata
+  doc["rssi"]            = rssi;
+  doc["uptimeSeconds"]   = uptimeSec;
   doc["firmwareVersion"] = firmwareVersion;
-  
+
   if (battVolts >= 0.0) {
     doc["battVolts"] = battVolts;
   }
@@ -37,7 +50,7 @@ bool FirebaseData::putLiveData(float current, bool alert, const char* alertType,
     doc["battPercent"] = battPercent;
   }
   
-  // Set Server Timestamp placeholder
+  // Server-side timestamp
   JsonObject tsObj = doc.createNestedObject("timestamp");
   tsObj[".sv"] = "timestamp";
 

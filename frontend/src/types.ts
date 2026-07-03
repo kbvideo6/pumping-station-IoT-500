@@ -4,6 +4,11 @@ import type { Timestamp } from 'firebase/firestore';
 
 export interface LiveData {
   current: number;
+  voltage?: number;
+  power?: number;
+  energy?: number;
+  frequency?: number;
+  powerFactor?: number;
   alert: boolean;
   alertType: string | null;
   rssi: number;
@@ -53,6 +58,7 @@ export interface AlertDocument {
   stationName: string;
   type: string;
   currentValue: number | null;
+  voltageValue?: number | null;
   threshold: number | null;
   timestamp: Timestamp | null;
   acknowledged: boolean;
@@ -81,4 +87,4 @@ export interface UserDocument {
 export type ToastType = 'success' | 'error' | 'warn' | 'info';
 export type StatusFilter = 'ALL' | 'ONLINE' | 'OFFLINE' | 'ALERT';
 export type AlertFilterAck = 'ALL' | 'ACK' | 'UNACK';
-export type AlertFilterType = 'ALL' | 'HIGH_CURRENT' | 'LOW_CURRENT' | 'DEVICE_OFFLINE';
+export type AlertFilterType = 'ALL' | 'HIGH_CURRENT' | 'LOW_CURRENT' | 'HIGH_VOLTAGE' | 'LOW_VOLTAGE' | 'DEVICE_OFFLINE';

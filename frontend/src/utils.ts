@@ -44,6 +44,34 @@ export const Utils = {
     return `${parseFloat(String(current)).toFixed(2)} A`;
   },
 
+  formatVoltage(v: number | undefined | null): string {
+    if (v === undefined || v === null) return '-- V';
+    return `${parseFloat(String(v)).toFixed(1)} V`;
+  },
+
+  formatPower(w: number | undefined | null): string {
+    if (w === undefined || w === null) return '-- W';
+    const watts = parseFloat(String(w));
+    return watts >= 1000 ? `${(watts / 1000).toFixed(2)} kW` : `${watts.toFixed(0)} W`;
+  },
+
+  formatEnergy(kwh: number | undefined | null): string {
+    if (kwh === undefined || kwh === null) return '-- kWh';
+    return `${parseFloat(String(kwh)).toFixed(3)} kWh`;
+  },
+
+  formatPowerFactor(pf: number | undefined | null): string {
+    if (pf === undefined || pf === null) return '--';
+    return parseFloat(String(pf)).toFixed(2);
+  },
+
+  powerFactorClass(pf: number | undefined | null): string {
+    if (pf === undefined || pf === null) return '';
+    if (pf >= 0.85) return 'pf--good';
+    if (pf >= 0.70) return 'pf--warn';
+    return 'pf--poor';
+  },
+
   formatTimestamp(timestamp: Date | number | null | undefined): string {
     if (!timestamp) return '--';
     const date = timestamp instanceof Date ? timestamp : new Date(timestamp);

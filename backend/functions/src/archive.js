@@ -16,12 +16,17 @@ exports.archiveReading = functions.database
       const firestore = admin.firestore();
       
       const reading = {
-        current: data.current !== undefined ? data.current : null,
-        alert: data.alert !== undefined ? data.alert : false,
-        alertType: data.alertType || null,
-        rssi: data.rssi !== undefined ? data.rssi : null,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        stationId: stationId
+        current:     data.current     !== undefined ? data.current     : null,
+        voltage:     data.voltage     !== undefined ? data.voltage     : null,
+        power:       data.power       !== undefined ? data.power       : null,
+        energy:      data.energy      !== undefined ? data.energy      : null,
+        frequency:   data.frequency   !== undefined ? data.frequency   : null,
+        powerFactor: data.powerFactor !== undefined ? data.powerFactor : null,
+        alert:       data.alert       !== undefined ? data.alert       : false,
+        alertType:   data.alertType   || null,
+        rssi:        data.rssi        !== undefined ? data.rssi        : null,
+        timestamp:   admin.firestore.FieldValue.serverTimestamp(),
+        stationId:   stationId
       };
 
       const docRef = await firestore

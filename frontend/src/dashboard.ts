@@ -122,7 +122,7 @@ export const Dashboard = {
         if (hasAlert) fillModifier = 'current-bar__fill--alert';
         else if (percentFill > 80) fillModifier = 'current-bar__fill--warn';
 
-        const liveData = live as { rssi?: number; battPercent?: number; battVolts?: number; timestamp?: number };
+        const liveData = live as { rssi?: number; battPercent?: number; battVolts?: number; timestamp?: number; voltage?: number; power?: number };
 
         html += `
           <div class="card station-card ${modifier}" data-station-id="${id}">
@@ -134,6 +134,7 @@ export const Dashboard = {
               ${statusBadge}
             </div>
             <div class="station-card__value">${online ? current.toFixed(2) + ' A' : '-- A'}</div>
+            ${online && liveData.voltage !== undefined ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; font-family: monospace;">${liveData.voltage.toFixed(1)} V &nbsp;·&nbsp; ${liveData.power !== undefined ? (liveData.power >= 1000 ? (liveData.power/1000).toFixed(2)+' kW' : liveData.power.toFixed(0)+' W') : '-- W'}</div>` : ''}
             <div class="current-bar">
               <div class="current-bar__fill ${fillModifier}" style="width: ${online ? percentFill : 0}%"></div>
             </div>

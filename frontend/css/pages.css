@@ -331,3 +331,20 @@
   from { transform: scale(0.92); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ── Power Factor color indicators ───────────── */
+.pf--good { color: var(--status-ok); }
+.pf--warn { color: var(--status-warn, #f59e0b); }
+.pf--poor { color: var(--status-alert); }
+
+/* Compact metric grid for 8 cards ───────────── */
+@media (min-width: 1200px) {
+  .detail-metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .detail-metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
