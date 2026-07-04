@@ -80,8 +80,59 @@ export const StationManagement = {
         this._confirmDelete(id);
       } else if (action === 'provision' && id) {
         void this._provisionStation(id);
+      } else if (action === 'livedata' && id) {
+        void this._showLiveDataModal(id);
       }
     });
+  },
+
+  async _showLiveDataModal(stationId: string): Promise<void> {
+    try {
+      const snapshot = await get(dbRef(db, `/stations/${stationId}`));
+      const data = snapshot.val();
+      if (!data) return;
+
+      const live = data.live || {};
+      const config = data.config || {};
+      
+      const content = `
+        <h3 class="modal__title">${i18n.currentLang === 'de' ? 'Live-Daten' : 'Live Data'} - ${config.stationName || stationId}</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+          <div class="card" style="padding: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">${i18n.t('current_a')}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${live.current !== undefined ? live.current.toFixed(2) + ' A' : '--'}</div>
+          </div>
+          <div class="card" style="padding: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Voltage</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${live.voltage !== undefined ? live.voltage.toFixed(1) + ' V' : '--'}</div>
+          </div>
+          <div class="card" style="padding: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Power</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${live.power !== undefined ? live.power.toFixed(0) + ' W' : '--'}</div>
+          </div>
+          <div class="card" style="padding: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Energy</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${live.energy !== undefined ? live.energy.toFixed(2) + ' kWh' : '--'}</div>
+          </div>
+          <div class="card" style="padding: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Frequency</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${live.frequency !== undefined ? live.frequency.toFixed(1) + ' Hz' : '--'}</div>
+          </div>
+          <div class="card" style="padding: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Power Factor</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${live.powerFactor !== undefined ? live.powerFactor.toFixed(2) : '--'}</div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn-primary" id="modal-close-livedata">${i18n.currentLang === 'de' ? 'Schließen' : 'Close'}</button>
+        </div>
+      `;
+      Utils.openModal(content);
+      document.getElementById('modal-close-livedata')?.addEventListener('click', () => Utils.closeModal());
+    } catch (e) {
+      console.error(e);
+      Utils.showToast('Failed to load data', 'error');
+    }
   },
 
   async _loadStations(): Promise<void> {
@@ -117,6 +168,10 @@ export const StationManagement = {
           </td>
           <td>
             <div style="display: flex; gap: 6px;">
+              <button class="btn btn-secondary btn-icon" title="${i18n.currentLang === 'de' ? 'Live-Daten ansehen' : 'View Live Data'}"
+                data-action="livedata" data-id="${s.id}">
+                <i data-lucide="activity"></i>
+              </button>
               <button class="btn btn-ghost btn-icon" title="${i18n.currentLang === 'de' ? 'Bearbeiten' : 'Edit'}"
                 data-action="edit" data-id="${s.id}" data-name="${s.name}"
                 data-lat="${s.lat}" data-lng="${s.lng}">
@@ -151,6 +206,11 @@ export const StationManagement = {
         <input type="text" id="modal-new-name" class="input" placeholder="${i18n.currentLang === 'de' ? 'Pumpe Nördlich' : 'North Pump'}">
       </div>
       <br>
+      <div class="input-group">
+        <label class="input-label">${i18n.t('notification_emails') || 'Notification Emails (comma separated)'}</label>
+        <input type="text" id="modal-new-emails" class="input" placeholder="admin@example.com, alert@example.com">
+      </div>
+      <br>
       <div style="display:flex; gap: var(--space-4);">
         <div class="input-group">
           <label class="input-label">${i18n.t('pump_power')}</label>
@@ -169,6 +229,7 @@ export const StationManagement = {
     document.getElementById('modal-provision-btn')?.addEventListener('click', () => {
       const id = (document.getElementById('modal-new-id') as HTMLInputElement).value.trim().toUpperCase();
       const name = (document.getElementById('modal-new-name') as HTMLInputElement).value.trim();
+      const emails = (document.getElementById('modal-new-emails') as HTMLInputElement).value.trim();
       const power = parseFloat((document.getElementById('modal-new-power') as HTMLInputElement).value);
 
       if (!id || !name) {
@@ -176,17 +237,17 @@ export const StationManagement = {
         return;
       }
       Utils.closeModal();
-      void this._provisionStation(id, name, power);
+      void this._provisionStation(id, name, power, emails);
     });
   },
 
-  async _provisionStation(stationId: string, name?: string, pumpPowerKW?: number): Promise<void> {
+  async _provisionStation(stationId: string, name?: string, pumpPowerKW?: number, notificationEmails?: string): Promise<void> {
     try {
       const stationObj = this._stations.find((s) => s.id === stationId);
       const resolvedName = (name || stationObj?.name || stationId).trim();
 
       const provisionDeviceFn = httpsCallable<
-        { stationId: string; stationName: string; name: string; pumpPowerKW?: number },
+        { stationId: string; stationName: string; name: string; pumpPowerKW?: number; notificationEmails?: string },
         { customToken: string }
       >(functions, 'provisionDevice');
 
@@ -195,6 +256,7 @@ export const StationManagement = {
         stationName: resolvedName,
         name: resolvedName,
         pumpPowerKW,
+        notificationEmails,
       });
       const token = result.data.customToken;
 
@@ -226,12 +288,24 @@ export const StationManagement = {
     }
   },
 
-  _showEditModal(id: string, name: string, lat: number, lng: number): void {
+  async _showEditModal(id: string, name: string, lat: number, lng: number): Promise<void> {
+    // Fetch current emails if any
+    let currentEmails = '';
+    try {
+      const snap = await get(dbRef(db, `/stations/${id}/config/notificationEmails`));
+      if (snap.exists()) currentEmails = snap.val();
+    } catch (e) {}
+
     Utils.openModal(`
       <h3 class="modal__title">${i18n.currentLang === 'de' ? `Station bearbeiten: ${id}` : `Edit Station: ${id}`}</h3>
       <div class="input-group">
         <label class="input-label">${i18n.currentLang === 'de' ? 'Anzeigename' : 'Display Name'}</label>
         <input type="text" id="modal-edit-name" class="input" value="${name}">
+      </div>
+      <br>
+      <div class="input-group">
+        <label class="input-label">${i18n.t('notification_emails') || 'Notification Emails (comma separated)'}</label>
+        <input type="text" id="modal-edit-emails" class="input" value="${currentEmails}">
       </div>
       <br>
       <div style="display:flex; gap: var(--space-4);">
@@ -244,21 +318,62 @@ export const StationManagement = {
           <input type="number" id="modal-edit-lng" class="input input--numeric" step="0.000001" value="${lng}">
         </div>
       </div>
-      <div class="modal__footer">
-        <button class="btn btn-ghost" id="modal-edit-cancel">${i18n.t('cancel')}</button>
-        <button class="btn btn-primary" id="modal-edit-save">${i18n.t('save')}</button>
+      <div class="modal__footer" style="justify-content: space-between;">
+        <button class="btn btn-danger" id="modal-edit-regen" style="margin-right: auto;">
+          <i data-lucide="refresh-cw"></i> ${i18n.currentLang === 'de' ? 'Token neu generieren' : 'Regenerate Token'}
+        </button>
+        <div style="display:flex; gap: 8px;">
+          <button class="btn btn-ghost" id="modal-edit-cancel">${i18n.t('cancel')}</button>
+          <button class="btn btn-primary" id="modal-edit-save">${i18n.t('save')}</button>
+        </div>
       </div>
     `);
+
+    document.getElementById('modal-edit-regen')?.addEventListener('click', () => {
+      const warningMsg = i18n.currentLang === 'de' 
+        ? 'WARNUNG: Dies macht das alte Token ungültig und das Gerät wird getrennt, bis das neue Token geflasht wird. Fortfahren?'
+        : 'WARNING: This will invalidate the old token and disconnect the device until the new token is flashed. Continue?';
+        
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-backdrop';
+      overlay.style.zIndex = '300';
+      overlay.innerHTML = `
+        <div class="modal" style="max-width: 400px; text-align: center; border: 1px solid var(--status-alert-border);">
+          <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--status-alert); margin-bottom: 16px;"></i>
+          <h3 style="margin-bottom: 12px; color: var(--text-primary);">Regenerate Token?</h3>
+          <p style="margin-bottom: 24px; color: var(--text-secondary); font-size: 0.9rem;">${warningMsg}</p>
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn btn-ghost" id="confirm-cancel">${i18n.t('cancel')}</button>
+            <button class="btn btn-danger" id="confirm-yes">Regenerate</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      refreshIcons();
+
+      document.getElementById('confirm-cancel')?.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+      });
+
+      document.getElementById('confirm-yes')?.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        const stationName = (document.getElementById('modal-edit-name') as HTMLInputElement).value;
+        Utils.closeModal(); // Close the edit modal
+        void this._provisionStation(id, stationName);
+      });
+    });
 
     document.getElementById('modal-edit-cancel')?.addEventListener('click', () => Utils.closeModal());
     document.getElementById('modal-edit-save')?.addEventListener('click', async () => {
       const newName = (document.getElementById('modal-edit-name') as HTMLInputElement).value.trim();
+      const newEmails = (document.getElementById('modal-edit-emails') as HTMLInputElement).value.trim();
       const newLat = parseFloat((document.getElementById('modal-edit-lat') as HTMLInputElement).value);
       const newLng = parseFloat((document.getElementById('modal-edit-lng') as HTMLInputElement).value);
 
       try {
         await update(dbRef(db, `/stations/${id}/config`), {
           stationName: newName,
+          notificationEmails: newEmails,
           lat: newLat,
           lng: newLng,
         });

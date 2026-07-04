@@ -120,7 +120,7 @@ export const UserManagement = {
           <td>
             <div style="display: flex; gap: 6px;">
               ${!isSelf ? `
-                <button class="btn btn-ghost" style="font-size:0.78rem;"
+                <button class="btn btn-ghost btn-icon"
                   title="${u.role === 'admin' ? (i18n.currentLang === 'de' ? 'Zu Betrachter herabstufen' : 'Demote to Viewer') : (i18n.currentLang === 'de' ? 'Zu Admin hochstufen' : 'Promote to Admin')}"
                   data-action="toggle-role" data-id="${u.id}" data-role="${u.role}">
                   <i data-lucide="${u.role === 'admin' ? 'shield-off' : 'shield-alert'}"></i>

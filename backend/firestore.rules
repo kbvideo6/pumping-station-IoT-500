@@ -17,7 +17,7 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
     
-    match /history/{stationId}/readings/{readingId} {
+    match /history/{historyId} {
       allow read: if isUser();
       allow write: if false; // Only Cloud Functions write here (via Admin SDK)
     }
@@ -60,6 +60,11 @@ service cloud.firestore {
     }
     
     match /devices/{stationId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /deletedStations/{stationId} {
       allow read: if isAdmin();
       allow write: if isAdmin();
     }

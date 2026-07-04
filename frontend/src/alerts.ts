@@ -4,12 +4,13 @@ import {
   where,
   orderBy,
   limit,
-  getDocs,
+  onSnapshot,
   doc,
   updateDoc,
   serverTimestamp,
   type Timestamp,
 } from 'firebase/firestore';
+import type { Unsubscribe } from 'firebase/firestore';
 import { firestore } from './firebase';
 import { AuthService } from './auth';
 import { Utils, refreshIcons } from './utils';
@@ -22,6 +23,7 @@ export const AlertsList = {
   _filterAck: 'ALL' as AlertFilterAck,
   _filterType: 'ALL' as AlertFilterType,
   _alerts: [] as AlertDocumentWithId[],
+  _unsubscribe: null as Unsubscribe | null,
 
   render(container: HTMLElement, stationId: string | null = null): void {
     this._container = container;
@@ -103,6 +105,11 @@ export const AlertsList = {
     const tbody = document.getElementById('alerts-table-body') as HTMLElement;
     tbody.innerHTML = `<tr><td colspan="7"><div class="loading-container"><div class="spinner"></div></div></td></tr>`;
 
+    if (this._unsubscribe) {
+      this._unsubscribe();
+      this._unsubscribe = null;
+    }
+
     try {
       const alertsRef = collection(firestore, 'alerts');
       const conditions = [];
@@ -119,17 +126,31 @@ export const AlertsList = {
         conditions.push(where('type', '==', this._filterType));
       }
 
-      const q = query(alertsRef, ...conditions, orderBy('timestamp', 'desc'), limit(100));
-      const snapshot = await getDocs(q);
+      conditions.push(orderBy('timestamp', 'desc'));
 
-      this._alerts = [];
-      snapshot.forEach((d) => {
-        this._alerts.push({ id: d.id, ...(d.data() as Omit<AlertDocumentWithId, 'id'>) });
+      const q = query(alertsRef, ...conditions, limit(100));
+      
+      this._unsubscribe = onSnapshot(q, (snapshot) => {
+        this._alerts = [];
+        snapshot.forEach((d) => {
+          this._alerts.push({ id: d.id, ...(d.data() as Omit<AlertDocumentWithId, 'id'>) });
+        });
+
+        // Sort by timestamp descending in memory to avoid missing index errors
+        this._alerts.sort((a, b) => {
+          const tA = (a.timestamp as Timestamp)?.toMillis() || 0;
+          const tB = (b.timestamp as Timestamp)?.toMillis() || 0;
+          return tB - tA;
+        });
+
+        this._renderTable();
+      }, (error) => {
+        console.error('Error listening to alerts:', error);
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--status-alert); padding:40px;">${i18n.t('alerts_load_error')}</td></tr>`;
       });
 
-      this._renderTable();
     } catch (error) {
-      console.error('Error loading alerts:', error);
+      console.error('Error setting up alerts listener:', error);
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--status-alert); padding:40px;">${i18n.t('alerts_load_error')}</td></tr>`;
     }
   },
@@ -193,6 +214,10 @@ export const AlertsList = {
   },
 
   destroy(): void {
+    if (this._unsubscribe) {
+      this._unsubscribe();
+      this._unsubscribe = null;
+    }
     this._stationId = null;
     this._container = null;
     this._alerts = [];

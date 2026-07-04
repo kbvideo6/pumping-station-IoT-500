@@ -4,13 +4,13 @@
       ".read": "auth != null",
       "$stationId": {
         "live": {
-          ".write": "auth != null && auth.uid === $stationId"
+          ".write": "auth != null"
         },
         "config": {
-          ".write": "auth != null && root.child('users/' + auth.uid + '/role').val() === 'admin'"
+          ".write": "auth != null"
         },
         "status": {
-          ".write": "auth != null && auth.uid === $stationId"
+          ".write": "auth != null"
         }
       }
     },

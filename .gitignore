@@ -1,11 +1,31 @@
+# Dependencies
 node_modules/
 dist/
-npm-cache/
-npm-global/
-graphify-out/
+
+# Environment files (contain secrets)
 .env
 .env.local
 .env.*.local
-*.log
+
+# Build & cache
+npm-cache/
+npm-global/
+
+# Firebase
 .firebase/
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+ui-debug.log
+
+# Logs
+*.log
+
+# IDE & tools
 .gemini/
+graphify-out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

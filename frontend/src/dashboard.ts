@@ -6,6 +6,8 @@ import type { Station, StationsSnapshot, StatusFilter } from './types';
 
 export const Dashboard = {
   _unsubscribe: null as Unsubscribe | null,
+  _currentPage: 1 as number,
+  _itemsPerPage: 20 as number,
 
   render(container: HTMLElement): void {
     container.innerHTML = `
@@ -16,21 +18,21 @@ export const Dashboard = {
 
         <!-- Summary Stat Cards -->
         <div class="summary-cards">
-          <div class="card summary-card">
+          <div class="card summary-card" id="card-total" style="cursor: pointer; transition: transform 0.2s;">
             <div class="summary-card__info">
               <span id="stat-total" class="summary-card__value">--</span>
               <span class="summary-card__label">${i18n.t('total_stations')}</span>
             </div>
             <div class="summary-card__icon"><i data-lucide="cpu"></i></div>
           </div>
-          <div class="card summary-card">
+          <div class="card summary-card" id="card-online" style="cursor: pointer; transition: transform 0.2s;">
             <div class="summary-card__info">
               <span id="stat-online" class="summary-card__value" style="color: var(--status-ok)">--</span>
               <span class="summary-card__label">${i18n.t('online')}</span>
             </div>
             <div class="summary-card__icon" style="color: var(--status-ok); background-color: var(--status-ok-dim);"><i data-lucide="wifi"></i></div>
           </div>
-          <div class="card summary-card">
+          <div class="card summary-card" id="card-alerts" style="cursor: pointer; transition: transform 0.2s;">
             <div class="summary-card__info">
               <span id="stat-alerts" class="summary-card__value">--</span>
               <span class="summary-card__label">${i18n.t('active_alerts')}</span>
@@ -59,6 +61,10 @@ export const Dashboard = {
             <div class="spinner spinner--lg"></div>
           </div>
         </div>
+
+        <!-- Pagination Controls -->
+        <div id="pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: var(--space-4); margin-top: var(--space-6); padding-bottom: var(--space-6);">
+        </div>
       </div>
     `;
 
@@ -77,8 +83,8 @@ export const Dashboard = {
       const searchVal = searchInput.value.toLowerCase().trim();
       const filterVal = filterSelect.value as StatusFilter;
 
-      let html = '';
-      let renderedCount = 0;
+      // Filter all stations into an array
+      const filteredStations = [];
 
       for (const [id, station] of Object.entries(allStationsData)) {
         const config = station.config ?? {} as Station['config'] & object;
@@ -101,73 +107,125 @@ export const Dashboard = {
 
         if (!matchesSearch || !matchesStatus) continue;
 
-        let modifier = 'card--offline';
-        let statusBadge = `<span class="badge badge--offline"><i class="led led--offline"></i> ${i18n.t('offline')}</span>`;
-
-        if (online) {
-          if (hasAlert) {
-            modifier = 'card--alert';
-            statusBadge = `<span class="badge badge--alert"><i class="led led--alert"></i> ${Utils.getAlertLabel((live as { alertType?: string }).alertType)}</span>`;
-          } else {
-            modifier = 'card--ok';
-            statusBadge = `<span class="badge badge--ok"><i class="led led--ok"></i> ${i18n.t('normal')}</span>`;
-          }
-        }
-
-        const highThreshold = (config as { highThreshold?: number }).highThreshold ?? 18.0;
-        let percentFill = (current / highThreshold) * 100;
-        if (percentFill > 100) percentFill = 100;
-
-        let fillModifier = '';
-        if (hasAlert) fillModifier = 'current-bar__fill--alert';
-        else if (percentFill > 80) fillModifier = 'current-bar__fill--warn';
-
-        const liveData = live as { rssi?: number; battPercent?: number; battVolts?: number; timestamp?: number; voltage?: number; power?: number };
-
-        html += `
-          <div class="card station-card ${modifier}" data-station-id="${id}">
-            <div class="station-card__header">
-              <div class="station-card__title">
-                <span class="station-card__name">${name}</span>
-                <span class="station-card__id">${id}</span>
-              </div>
-              ${statusBadge}
-            </div>
-            <div class="station-card__value">${online ? current.toFixed(2) + ' A' : '-- A'}</div>
-            ${online && liveData.voltage !== undefined ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; font-family: monospace;">${liveData.voltage.toFixed(1)} V &nbsp;·&nbsp; ${liveData.power !== undefined ? (liveData.power >= 1000 ? (liveData.power/1000).toFixed(2)+' kW' : liveData.power.toFixed(0)+' W') : '-- W'}</div>` : ''}
-            <div class="current-bar">
-              <div class="current-bar__fill ${fillModifier}" style="width: ${online ? percentFill : 0}%"></div>
-            </div>
-            <div class="station-card__footer">
-              <div class="station-card__footer-item">
-                <i data-lucide="signal" style="width: 14px; height: 14px;"></i>
-                <span>${online ? (liveData.rssi ?? '--') + ' dBm' : '--'}</span>
-              </div>
-              ${online && liveData.battPercent !== undefined ? `
-              <div class="station-card__footer-item" title="Batteriespannung: ${liveData.battVolts ? liveData.battVolts.toFixed(2) + ' V' : '--'}">
-                <i data-lucide="battery" style="width: 14px; height: 14px;"></i>
-                <span>${liveData.battPercent.toFixed(0)}%</span>
-              </div>
-              ` : ''}
-              <div class="station-card__footer-item">
-                <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
-                <span>${Utils.formatRelativeTime(liveData.timestamp)}</span>
-              </div>
-            </div>
-          </div>
-        `;
-        renderedCount++;
+        filteredStations.push({
+          id, station, config, live, status, name, online, current, hasAlert
+        });
       }
 
-      if (renderedCount === 0) {
+      // Sort alphabetically by ID just for stable pagination
+      filteredStations.sort((a, b) => a.id.localeCompare(b.id));
+
+      const totalItems = filteredStations.length;
+      const totalPages = Math.ceil(totalItems / this._itemsPerPage) || 1;
+      if (this._currentPage > totalPages) {
+        this._currentPage = totalPages;
+      }
+
+      const startIndex = (this._currentPage - 1) * this._itemsPerPage;
+      const endIndex = startIndex + this._itemsPerPage;
+      const paginatedStations = filteredStations.slice(startIndex, endIndex);
+
+      let html = '';
+      
+      if (paginatedStations.length === 0) {
         html = `
           <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-secondary);">
             ${i18n.t('no_stations_found')}
           </div>
         `;
+      } else {
+        for (const item of paginatedStations) {
+          const { id, live, name, online, current, hasAlert, config } = item;
+          let modifier = 'card--offline';
+          let statusBadge = `<span class="badge badge--offline"><i class="led led--offline"></i> ${i18n.t('offline')}</span>`;
+
+          if (online) {
+            if (hasAlert) {
+              modifier = 'card--alert';
+              statusBadge = `<span class="badge badge--alert"><i class="led led--alert"></i> ${Utils.getAlertLabel((live as { alertType?: string }).alertType)}</span>`;
+            } else {
+              modifier = 'card--ok';
+              statusBadge = `<span class="badge badge--ok"><i class="led led--ok"></i> ${i18n.t('normal')}</span>`;
+            }
+          }
+
+          const highThreshold = (config as { highThreshold?: number }).highThreshold ?? 18.0;
+          let percentFill = (current / highThreshold) * 100;
+          if (percentFill > 100) percentFill = 100;
+
+          let fillModifier = '';
+          if (hasAlert) fillModifier = 'current-bar__fill--alert';
+          else if (percentFill > 80) fillModifier = 'current-bar__fill--warn';
+
+          const liveData = live as { rssi?: number; battPercent?: number; battVolts?: number; timestamp?: number; voltage?: number; power?: number };
+
+          html += `
+            <div class="card station-card ${modifier}" data-station-id="${id}">
+              <div class="station-card__header">
+                <div class="station-card__title">
+                  <span class="station-card__name">${name}</span>
+                  <span class="station-card__id">${id}</span>
+                </div>
+                ${statusBadge}
+              </div>
+              <div class="station-card__value">${online ? current.toFixed(2) + ' A' : '-- A'}</div>
+              ${online && liveData.voltage !== undefined ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; font-family: monospace;">${liveData.voltage.toFixed(1)} V &nbsp;·&nbsp; ${liveData.power !== undefined ? (liveData.power >= 1000 ? (liveData.power/1000).toFixed(2)+' kW' : liveData.power.toFixed(0)+' W') : '-- W'}</div>` : ''}
+              <div class="current-bar">
+                <div class="current-bar__fill ${fillModifier}" style="width: ${online ? percentFill : 0}%"></div>
+              </div>
+              <div class="station-card__footer">
+                <div class="station-card__footer-item">
+                  <i data-lucide="signal" style="width: 14px; height: 14px;"></i>
+                  <span>${online ? (liveData.rssi ?? '--') + ' dBm' : '--'}</span>
+                </div>
+                ${online && liveData.battPercent !== undefined ? `
+                <div class="station-card__footer-item" title="Batteriespannung: ${liveData.battVolts ? liveData.battVolts.toFixed(2) + ' V' : '--'}">
+                  <i data-lucide="battery" style="width: 14px; height: 14px;"></i>
+                  <span>${liveData.battPercent.toFixed(0)}%</span>
+                </div>
+                ` : ''}
+                <div class="station-card__footer-item">
+                  <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                  <span>${Utils.formatRelativeTime(liveData.timestamp)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
       }
 
       grid.innerHTML = html;
+      
+      // Render pagination controls
+      const paginationContainer = document.getElementById('pagination-controls');
+      if (paginationContainer) {
+        if (totalPages > 1) {
+          paginationContainer.innerHTML = `
+            <button class="btn btn-ghost" id="btn-prev-page" ${this._currentPage === 1 ? 'disabled' : ''}>
+              <i data-lucide="chevron-left"></i> Previous
+            </button>
+            <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-secondary);">Page ${this._currentPage} of ${totalPages}</span>
+            <button class="btn btn-ghost" id="btn-next-page" ${this._currentPage === totalPages ? 'disabled' : ''}>
+              Next <i data-lucide="chevron-right"></i>
+            </button>
+          `;
+          document.getElementById('btn-prev-page')?.addEventListener('click', () => {
+            if (this._currentPage > 1) {
+              this._currentPage--;
+              filterAndRender();
+            }
+          });
+          document.getElementById('btn-next-page')?.addEventListener('click', () => {
+            if (this._currentPage < totalPages) {
+              this._currentPage++;
+              filterAndRender();
+            }
+          });
+        } else {
+          paginationContainer.innerHTML = '';
+        }
+      }
+      
       refreshIcons();
     };
 
@@ -179,8 +237,30 @@ export const Dashboard = {
       }
     });
 
-    searchInput.addEventListener('input', filterAndRender);
-    filterSelect.addEventListener('change', filterAndRender);
+    searchInput.addEventListener('input', () => {
+      this._currentPage = 1;
+      filterAndRender();
+    });
+    filterSelect.addEventListener('change', () => {
+      this._currentPage = 1;
+      filterAndRender();
+    });
+    
+    document.getElementById('card-total')?.addEventListener('click', () => {
+      filterSelect.value = 'ALL';
+      this._currentPage = 1;
+      filterAndRender();
+    });
+    document.getElementById('card-online')?.addEventListener('click', () => {
+      filterSelect.value = 'ONLINE';
+      this._currentPage = 1;
+      filterAndRender();
+    });
+    document.getElementById('card-alerts')?.addEventListener('click', () => {
+      filterSelect.value = 'ALERT';
+      this._currentPage = 1;
+      filterAndRender();
+    });
 
     // Bind real-time RTDB sync
     this._unsubscribe = onValue(ref(db, '/stations'), (snapshot) => {

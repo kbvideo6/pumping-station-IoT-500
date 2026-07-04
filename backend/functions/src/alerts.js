@@ -26,12 +26,12 @@ exports.onLiveDataWrite = functions.database
       const configSnap = await db.ref(`/stations/${stationId}/config`).once('value');
       const config = configSnap.val() || {};
 
-      // 2. Alert Cooldown Check (5 minutes = 300,000 ms)
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      // 2. Alert Cooldown Check (1 minute = 60,000 ms)
+      const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
       const recentAlertsSnap = await firestore.collection('alerts')
         .where('stationId', '==', stationId)
         .where('type', '==', data.alertType)
-        .where('timestamp', '>', fiveMinutesAgo)
+        .where('timestamp', '>', oneMinuteAgo)
         .limit(1)
         .get();
 
@@ -59,7 +59,7 @@ exports.onLiveDataWrite = functions.database
         currentValue:  data.current !== undefined ? data.current  : null,
         voltageValue:  data.voltage !== undefined ? data.voltage  : null,
         threshold: thresholdValue,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: new Date(),
         acknowledged: false,
         acknowledgedBy: null,
         acknowledgedAt: null,
@@ -67,21 +67,29 @@ exports.onLiveDataWrite = functions.database
         emailSentTo: []
       };
 
-      // 3. Retrieve admin users to email
-      const adminsSnap = await firestore.collection('users')
-        .where('role', '==', 'admin')
-        .get();
-
+      // 3. Determine emails to notify
       const emails = [];
-      adminsSnap.forEach(doc => {
-        const u = doc.data();
-        if (u.email) {
-          emails.push(u.email);
-        }
-      });
+      
+      // If custom notification emails are provided in station config, use them
+      if (config.notificationEmails) {
+        const customEmails = config.notificationEmails.split(',').map(e => e.trim()).filter(e => e);
+        emails.push(...customEmails);
+      } else {
+        // Otherwise fallback to all administrators
+        const adminsSnap = await firestore.collection('users')
+          .where('role', '==', 'admin')
+          .get();
 
-      if (emails.length === 0) {
-        console.warn('No administrator emails found in Firestore /users collection.');
+        adminsSnap.forEach(doc => {
+          const u = doc.data();
+          if (u.email) {
+            emails.push(u.email);
+          }
+        });
+
+        if (emails.length === 0) {
+          console.warn('No administrator emails found in Firestore /users collection.');
+        }
       }
 
       // Save alert to database

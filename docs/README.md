@@ -16,6 +16,7 @@
 | 4 | [Dashboard User Guide](./04_dashboard_user_guide.md) | Operator / Client | Login, map, charts, alerts, history export |
 | 5 | [Backend & Cloud Setup](./05_backend_cloud_setup.md) | Developer | Firebase project, deploy Cloud Functions |
 | 6 | [Alerts & Scaling Guide](./06_alerts_scaling.md) | Developer / Operator | Threshold config, adding 400+ stations |
+| 7 | [Local Development Guide](./07_local_development.md) | Developer | Emulators, seeding, simulator setup |
 
 ---
 
@@ -25,6 +26,7 @@
 2. **Setting up hardware?** → Go to [Hardware Setup & Wiring](./02_hardware_setup.md)
 3. **Adding a new station?** → Follow [Firmware & Provisioning](./03_firmware_provisioning.md)
 4. **Using the web dashboard?** → See [Dashboard User Guide](./04_dashboard_user_guide.md)
+5. **Running locally?** → Follow [Local Development Guide](./07_local_development.md)
 
 ---
 

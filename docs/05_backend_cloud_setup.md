@@ -11,15 +11,15 @@
 Device (ESP32)
   │
   ▼ HTTPS / Firebase REST API
-Firebase Realtime Database  (/live/{stationId})
+Firebase Realtime Database  (/stations/{stationId}/live)
   │
-  ├─► Cloud Function: archive.js     → Firestore history/{stationId}/readings
-  ├─► Cloud Function: alerts.js      → Firestore alerts/{stationId}
+  ├─► Cloud Function: archive.js     → Firestore history/
+  ├─► Cloud Function: alerts.js      → Firestore alerts/
   └─► Cloud Function: offline.js     → Detects device timeout → creates OFFLINE alert
 
 Firestore alerts/ ──► Cloud Function: email.js  → SendGrid Email API
 Firebase RTDB     ──► Cloud Function: provision.js → Authenticates new devices
-Firestore history/ ──► Cloud Function: purge.js  → Deletes records older than 90 days
+Firestore history/ ──► Cloud Function: purge.js  → Deletes records older than 30 days
 ```
 
 ---
@@ -89,25 +89,32 @@ In the Firebase Console:
 2. Click **Add app → Web app**
 3. Copy the config object
 
-Open `frontend/src/firebase.ts` and update:
+Open `frontend/.env.example`, copy it to `frontend/.env`, and fill in your values:
 
-```typescript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "pumping-station-iot.firebaseapp.com",
-  databaseURL: "https://pumping-station-iot-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pumping-station-iot",
-  storageBucket: "pumping-station-iot.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+```bash
+cp frontend/.env.example frontend/.env
 ```
+
+Edit `frontend/.env`:
+
+```ini
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.europe-west1.firebasedatabase.app
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+> **Note:** The frontend source code reads these values automatically via `import.meta.env`. You do **not** need to edit any TypeScript files.
 
 Also update `firmware/src/config.h`:
 ```cpp
-#define FIREBASE_PROJECT_ID  "pumping-station-iot"
+#define FIREBASE_PROJECT_ID  "your-project-id"
 #define FIREBASE_API_KEY     "YOUR_WEB_API_KEY"
-#define FIREBASE_DB_URL      "https://pumping-station-iot-default-rtdb.europe-west1.firebasedatabase.app"
+#define FIREBASE_DB_URL      "https://your-project-default-rtdb.europe-west1.firebasedatabase.app"
 ```
 
 ---

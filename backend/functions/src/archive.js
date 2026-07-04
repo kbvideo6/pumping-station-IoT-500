@@ -25,14 +25,12 @@ exports.archiveReading = functions.database
         alert:       data.alert       !== undefined ? data.alert       : false,
         alertType:   data.alertType   || null,
         rssi:        data.rssi        !== undefined ? data.rssi        : null,
-        timestamp:   admin.firestore.FieldValue.serverTimestamp(),
+        timestamp:   new Date(),
         stationId:   stationId
       };
 
       const docRef = await firestore
         .collection('history')
-        .doc(stationId)
-        .collection('readings')
         .add(reading);
 
       console.log(`Archived reading to history collection with ID: ${docRef.id} for station ${stationId}`);

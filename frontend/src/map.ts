@@ -10,6 +10,7 @@ export const MapView = {
   _map: null as L.Map | null,
   _markers: {} as Record<string, L.Marker>,
   _unsubscribe: null as Unsubscribe | null,
+  _initialFitDone: false,
 
   render(container: HTMLElement): void {
     container.innerHTML = `
@@ -28,12 +29,31 @@ export const MapView = {
   },
 
   _initMap(): void {
-    // Default centered on Austria (Graz region)
-    this._map = L.map('map').setView([47.0707, 15.4395], 7);
+    let initialCenter: L.LatLngTuple = [47.0707, 15.4395];
+    let initialZoom = 7;
+    const savedCenter = localStorage.getItem('mapCenter');
+    const savedZoom = localStorage.getItem('mapZoom');
+    
+    if (savedCenter && savedZoom) {
+      initialCenter = JSON.parse(savedCenter);
+      initialZoom = parseInt(savedZoom, 10);
+      this._initialFitDone = true; // Skip auto-fit if user has a saved location
+    }
+
+    this._map = L.map('map').setView(initialCenter, initialZoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(this._map);
+
+    this._map.on('moveend', () => {
+      if (this._map) {
+        const center = this._map.getCenter();
+        localStorage.setItem('mapCenter', JSON.stringify([center.lat, center.lng]));
+        localStorage.setItem('mapZoom', this._map.getZoom().toString());
+        this._initialFitDone = true; // Once they move, don't auto-fit anymore
+      }
+    });
 
     this._setupRealtimePins();
   },
@@ -63,6 +83,7 @@ export const MapView = {
 
     this._unsubscribe = onValue(ref(db, '/stations'), (snapshot) => {
       const data: StationsSnapshot = snapshot.val() ?? {};
+      const bounds = L.latLngBounds([]);
 
       for (const [id, station] of Object.entries(data)) {
         const config = station.config ?? {} as Partial<StationConfig>;
@@ -98,15 +119,31 @@ export const MapView = {
           }
         }
 
+        let detailsHtml = '';
+        if (online) {
+          detailsHtml = `
+            <div style="font-size: 0.8rem; margin: 2px 0;">${i18n.t('current_a')}: <strong>${current.toFixed(2)} A</strong></div>
+            <div style="font-size: 0.8rem; margin: 2px 0;">Voltage: <strong>${live.voltage !== undefined ? live.voltage.toFixed(1) + ' V' : '--'}</strong></div>
+            <div style="font-size: 0.8rem; margin: 2px 0;">Power: <strong>${live.power !== undefined ? live.power.toFixed(0) + ' W' : '--'}</strong></div>
+            <div style="font-size: 0.8rem; margin: 2px 0;">Energy: <strong>${live.energy !== undefined ? live.energy.toFixed(2) + ' kWh' : '--'}</strong></div>
+            <div style="font-size: 0.8rem; margin: 2px 0;">Freq: <strong>${live.frequency !== undefined ? live.frequency.toFixed(1) + ' Hz' : '--'}</strong></div>
+            <div style="font-size: 0.8rem; margin: 2px 0;">PF: <strong>${live.powerFactor !== undefined ? live.powerFactor.toFixed(2) : '--'}</strong></div>
+          `;
+        }
+
         const popupHtml = `
-          <div class="map-popup">
-            <h4 class="map-popup__title">${name}</h4>
-            <div style="font-size: 0.75rem; font-family: monospace; color: #555; margin-bottom: 5px;">ID: ${id}</div>
+          <div class="map-popup" style="min-width: 180px;">
+            <h4 class="map-popup__title" style="margin: 0 0 4px 0; font-size: 1.1rem;">${name}</h4>
+            <div style="font-size: 0.75rem; font-family: monospace; color: #555; margin-bottom: 8px;">ID: ${id}</div>
             <div style="font-size: 0.8rem; margin: 4px 0;">${i18n.t('status')}: <strong>${statusText}</strong></div>
-            <div style="font-size: 0.8rem; margin: 4px 0;">${i18n.t('current_a')}: <strong>${online ? current.toFixed(2) + ' A' : '--'}</strong></div>
-            <a href="#/station/${id}" class="map-popup__link">${i18n.t('show_details')}</a>
+            ${detailsHtml}
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee;">
+              <a href="#/station/${id}" class="map-popup__link" style="display:block; text-align:center; background: var(--primary); color: white; padding: 6px; border-radius: 4px; text-decoration: none; font-size: 0.85rem;">${i18n.t('show_details')}</a>
+            </div>
           </div>
         `;
+
+        bounds.extend([lat, lng]);
 
         if (this._markers[id]) {
           this._markers[id].setLatLng([lat, lng]);
@@ -126,6 +163,11 @@ export const MapView = {
           delete this._markers[id];
         }
       }
+
+      if (!this._initialFitDone && bounds.isValid() && this._map) {
+        this._map.fitBounds(bounds, { padding: [50, 50] });
+        this._initialFitDone = true;
+      }
     });
   },
 
@@ -135,5 +177,6 @@ export const MapView = {
     this._map?.remove();
     this._map = null;
     this._markers = {};
+    this._initialFitDone = false;
   },
 };

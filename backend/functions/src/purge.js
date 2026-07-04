@@ -30,8 +30,7 @@ exports.purgeOldData = functions.pubsub
         // Delete in batches of 400 to avoid memory limit / transaction timeout
         while (hasMore) {
           const oldReadingsSnap = await firestore.collection('history')
-            .doc(stationId)
-            .collection('readings')
+            .where('stationId', '==', stationId)
             .where('timestamp', '<', cutoffDate)
             .limit(400)
             .get();

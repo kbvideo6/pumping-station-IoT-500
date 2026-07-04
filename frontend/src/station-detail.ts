@@ -12,7 +12,17 @@ import { Utils, refreshIcons } from './utils';
 import { AlertsList } from './alerts';
 import { HistoryLogs } from './history';
 import { i18n } from './i18n';
-import type { LiveData, StationConfig } from './types';
+import { type LiveData, type StationConfig } from './types';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  type Timestamp
+} from 'firebase/firestore';
+import { firestore } from './firebase';
 
 
 export const StationDetail = {
@@ -249,6 +259,45 @@ export const StationDetail = {
       }
     };
     window.addEventListener('themechange', this._themeChangeListener);
+    
+    // Fetch last 50 points from history
+    void this._loadInitialChartData();
+  },
+
+  async _loadInitialChartData(): Promise<void> {
+    if (!this._stationId) return;
+    try {
+      const q = query(
+        collection(firestore, 'history'),
+        where('stationId', '==', this._stationId),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      );
+      const snapshot = await getDocs(q);
+      
+      const records: Array<{ timestamp?: Timestamp | null; current?: number; voltage?: number }> = [];
+      snapshot.forEach(d => {
+        records.push(d.data());
+      });
+      
+      // Reverse to chronological order
+      records.reverse();
+      
+      const locale = i18n.currentLang === 'de' ? 'de-AT' : 'en-US';
+      records.forEach(r => {
+        const ts = r.timestamp as Timestamp | null;
+        if (ts) {
+          const date = ts.toDate();
+          this._chartLabels.push(date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+          this._chartData.push(r.current ?? 0);
+          this._chartVoltageData.push(r.voltage ?? 0);
+        }
+      });
+      
+      this._chart?.update('none');
+    } catch (e) {
+      console.warn("Failed to load initial history points:", e);
+    }
   },
 
   _bindListeners(): void {
@@ -382,7 +431,7 @@ export const StationDetail = {
             <input type="number" id="cfg-poll-interval" class="input input--numeric" min="60" value="${cfg.configPollIntervalSec ?? 300}">
           </div>
         </div>
-        <button id="btn-save-config" class="btn btn-primary">
+        <button id="btn-save-config" class="btn btn-primary" style="width: fit-content;">
           <i data-lucide="save"></i> ${i18n.t('btn_save_config')}
         </button>
       </div>

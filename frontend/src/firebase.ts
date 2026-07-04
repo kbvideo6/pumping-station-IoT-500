@@ -5,17 +5,17 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 // ── Firebase project configuration ───────────────────────────
-// Replace placeholder values with your actual Firebase project credentials
-// before deploying. Obtain them from: Firebase Console → Project Settings → Web App.
+// Values are loaded from environment variables (.env file).
+// See .env.example for the template.
 const firebaseConfig = {
-  apiKey: "AIzaSyA-Mmub9KEdSiZqGvJ4-rgBndQVPNybAA8",
-  authDomain: "pumping-station-iot.firebaseapp.com",
-  databaseURL: "https://pumping-station-iot-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pumping-station-iot",
-  storageBucket: "pumping-station-iot.firebasestorage.app",
-  messagingSenderId: "214766592563",
-  appId: "1:214766592563:web:aab47f06dc5408269c3946",
-  measurementId: "G-5STLHJR7VH",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -25,11 +25,11 @@ export const db = getDatabase(app);
 export const firestore = getFirestore(app);
 export const functions = getFunctions(app);
 
-/*if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+// Automatically connect to local Firebase emulators when running on localhost
+if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
   console.log('Connecting to local Firebase emulators...');
   connectAuthEmulator(auth, 'http://127.0.0.1:9099');
   connectDatabaseEmulator(db, '127.0.0.1', 9000);
   connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
-}*/
-
+}

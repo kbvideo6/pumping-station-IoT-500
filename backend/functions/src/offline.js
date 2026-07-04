@@ -35,7 +35,7 @@ exports.checkOfflineStations = functions.pubsub
             type: 'DEVICE_OFFLINE',
             currentValue: null,
             threshold: null,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: new Date(),
             acknowledged: false,
             acknowledgedBy: null,
             acknowledgedAt: null,

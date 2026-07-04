@@ -44,6 +44,10 @@ export const AuthService = {
 
           if (userDoc.exists()) {
             userData = userDoc.data() as UserData;
+          } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // Auto-create admin for localhost dev only
+            userData = { email: user.email!, role: 'admin', isPlaceholder: false };
+            await setDoc(userRef, userData);
           } else {
             // Check for email-based placeholder created by admin before first login
             const userEmail = user.email!.toLowerCase();
@@ -65,6 +69,7 @@ export const AuthService = {
               console.log(`Auto-associated placeholder for ${userEmail} → UID: ${user.uid}`);
             }
           }
+
 
           if (userData) {
             this.userRole = userData.role || 'viewer';

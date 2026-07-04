@@ -67,7 +67,7 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
       alert: false,
       alertType: null,
       rssi: 0,
-      timestamp: admin.database.ServerValue.TIMESTAMP,
+      timestamp: Date.now(),
       firmwareVersion: "0.0.0",
       uptimeSeconds: 0
     };
@@ -96,8 +96,8 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
       },
       status: {
         online: (existingData && existingData.status && existingData.status.online) || false,
-        lastSeen: (existingData && existingData.status && existingData.status.lastSeen) || admin.database.ServerValue.TIMESTAMP,
-        provisionedAt: admin.database.ServerValue.TIMESTAMP
+        lastSeen: (existingData && existingData.status && existingData.status.lastSeen) || Date.now(),
+        provisionedAt: Date.now()
       }
     });
 
@@ -105,14 +105,14 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
     await firestore.collection('devices').doc(parsedStationId).set({
       stationId: parsedStationId,
       stationName: resolvedName,
-      provisionedAt: admin.firestore.FieldValue.serverTimestamp(),
+      provisionedAt: new Date(),
       provisionedBy: callerUid,
       active: true
     }, { merge: true });
 
     // 8. Increment station counter if brand new
     if (!existingData) {
-      await db.ref('metadata/totalStations').set(admin.database.ServerValue.increment(1));
+      await db.ref('metadata/totalStations').transaction((current) => (current || 0) + 1);
     }
 
     console.log(`Successfully provisioned station ${parsedStationId} by admin ${callerUid}`);
