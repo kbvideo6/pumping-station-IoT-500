@@ -3,15 +3,7 @@
     "stations": {
       ".read": "auth != null",
       "$stationId": {
-        "live": {
-          ".write": "auth != null"
-        },
-        "config": {
-          ".write": "auth != null"
-        },
-        "status": {
-          ".write": "auth != null"
-        }
+        ".write": "auth != null"
       }
     },
     "metadata": {

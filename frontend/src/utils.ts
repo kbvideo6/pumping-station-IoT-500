@@ -123,6 +123,53 @@ export const Utils = {
     });
   },
 
+  initCustomSelects(): void {
+    document.querySelectorAll('.custom-select').forEach(dropdown => {
+      const trigger = dropdown.querySelector('.custom-select__trigger');
+      const options = dropdown.querySelectorAll('.custom-select__option');
+      const select = dropdown.querySelector('select') as HTMLSelectElement | null;
+
+      const onTriggerClick = (e: Event) => {
+        e.stopPropagation();
+        document.querySelectorAll('.custom-select').forEach(other => {
+          if (other !== dropdown) other.classList.remove('open');
+        });
+        dropdown.classList.toggle('open');
+      };
+      
+      trigger?.addEventListener('click', onTriggerClick);
+
+      options.forEach(opt => {
+        const onOptionClick = (e: Event) => {
+          e.stopPropagation();
+          const value = (opt as HTMLElement).dataset.value || '';
+          const text = opt.textContent || '';
+
+          const display = trigger?.querySelector('span');
+          if (display) display.textContent = text;
+
+          options.forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+
+          dropdown.classList.remove('open');
+
+          if (select) {
+            select.value = value;
+            select.dispatchEvent(new Event('change'));
+          }
+        };
+        opt.addEventListener('click', onOptionClick);
+      });
+    });
+
+    const onDocClick = () => {
+      document.querySelectorAll('.custom-select').forEach(dropdown => {
+        dropdown.classList.remove('open');
+      });
+    };
+    document.addEventListener('click', onDocClick);
+  },
+
   closeModal(): void {
     document.getElementById('modal-backdrop')?.remove();
   },

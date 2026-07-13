@@ -113,11 +113,11 @@ export const UserManagement = {
 
       return `
         <tr>
-          <td class="td--primary">${u.email ?? u.id}</td>
-          <td>${roleBadge}</td>
-          <td style="font-size:0.8rem;">${loginStr}</td>
-          <td style="font-size:0.8rem;">${createdStr}</td>
-          <td>
+          <td class="td--primary" data-label="${i18n.t('email')}">${u.email ?? u.id}</td>
+          <td data-label="${i18n.t('role')}">${roleBadge}</td>
+          <td data-label="${i18n.t('last_seen')}" style="font-size:0.8rem;">${loginStr}</td>
+          <td data-label="${i18n.t('created')}" style="font-size:0.8rem;">${createdStr}</td>
+          <td data-label="${i18n.t('actions')}">
             <div style="display: flex; gap: 6px;">
               ${!isSelf ? `
                 <button class="btn btn-ghost btn-icon"
@@ -152,10 +152,20 @@ export const UserManagement = {
       <br>
       <div class="input-group">
         <label class="input-label">${i18n.t('role')}</label>
-        <select id="modal-new-role" class="input">
-          <option value="viewer">${i18n.t('role_viewer')}</option>
-          <option value="admin">${i18n.t('role_admin')}</option>
-        </select>
+        <div class="custom-select">
+          <div class="custom-select__trigger">
+            <span>${i18n.t('role_viewer')}</span>
+            <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
+          </div>
+          <div class="custom-select__options">
+            <div class="custom-select__option selected" data-value="viewer">${i18n.t('role_viewer')}</div>
+            <div class="custom-select__option" data-value="admin">${i18n.t('role_admin')}</div>
+          </div>
+          <select id="modal-new-role" style="display: none;">
+            <option value="viewer">${i18n.t('role_viewer')}</option>
+            <option value="admin">${i18n.t('role_admin')}</option>
+          </select>
+        </div>
       </div>
       <div class="modal__footer">
         <button class="btn btn-ghost" id="modal-add-cancel">${i18n.t('cancel')}</button>
@@ -165,6 +175,7 @@ export const UserManagement = {
       </div>
     `);
 
+    Utils.initCustomSelects();
     document.getElementById('modal-add-cancel')?.addEventListener('click', () => Utils.closeModal());
     document.getElementById('modal-add-confirm')?.addEventListener('click', async () => {
       const email = (document.getElementById('modal-new-email') as HTMLInputElement).value.trim().toLowerCase();

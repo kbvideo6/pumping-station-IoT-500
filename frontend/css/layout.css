@@ -184,6 +184,147 @@
     padding: var(--space-4) var(--space-4) 80px var(--space-4);
     /* Add space at bottom to prevent overlap with bottom nav */
   }
+
+  /* Header mobile optimization */
+  .header {
+    padding: 0 var(--space-3);
+  }
+
+  .header__brand-text {
+    display: none;
+  }
+
+  .header__user-name {
+    display: none;
+  }
+
+  .header__user-menu {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  /* Responsive Tables as Cards on Mobile */
+  .table-wrapper {
+    background: transparent !important;
+    border: none !important;
+    overflow-x: visible !important;
+  }
+
+  .table, 
+  .table thead, 
+  .table tbody, 
+  .table th, 
+  .table td, 
+  .table tr {
+    display: block !important;
+  }
+
+  .table thead {
+    display: none !important; /* Hide headers on mobile */
+  }
+
+  .table tr {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-lg) !important;
+    margin-bottom: var(--space-4) !important;
+    padding: var(--space-4) !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+
+  .table td {
+    border-bottom: 1px solid var(--border-subtle) !important;
+    padding: var(--space-2) 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 0.85rem !important;
+    text-align: right !important;
+    white-space: normal !important;
+    min-height: 38px;
+  }
+
+  .table td:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  
+  .table td:first-child {
+    padding-top: 0 !important;
+  }
+
+  .table td::before {
+    content: attr(data-label) !important; /* Left-aligned label */
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    text-align: left !important;
+    padding-right: var(--space-4) !important;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* Filter row mobile optimization */
+  .filter-row {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: var(--space-3) !important;
+    padding: var(--space-3) !important;
+  }
+  
+  .filter-row .input-group {
+    flex: 1 1 calc(50% - var(--space-2)) !important;
+    min-width: 120px !important;
+    width: auto !important;
+  }
+  
+  .filter-row .btn {
+    width: 100% !important;
+    margin-top: var(--space-2) !important;
+    justify-content: center;
+  }
+
+  /* Detail Header mobile optimization */
+  .detail-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: var(--space-2) !important;
+  }
+
+  .detail-header h1 {
+    font-size: var(--text-lg) !important;
+    margin: 0 !important;
+  }
+
+  /* Compact Add Station button on mobile */
+  .detail-header .btn-primary {
+    padding: var(--space-2) var(--space-3) !important;
+    height: auto !important;
+    font-size: 0.85rem !important;
+  }
+
+  .detail-header .btn-primary span {
+    display: none !important; /* Hide text, show only icon on mobile */
+  }
+
+  /* Map mobile optimization */
+  .map-view-container {
+    height: 420px !important;
+  }
+
+  /* Reduce space on page headings and card spacing on mobile */
+  .content-area h1 {
+    font-size: var(--text-xl) !important;
+  }
+
+  .card {
+    padding: var(--space-4) !important;
+  }
+
+  .summary-cards {
+    gap: var(--space-3);
+  }
 }
 
 .btn-theme-toggle {

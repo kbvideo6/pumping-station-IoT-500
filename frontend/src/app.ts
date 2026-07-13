@@ -80,7 +80,7 @@ export const App = {
             <img src="/logo.png" alt="Logo" style="width: 56px; height: 56px; object-fit: contain;">
           </div>
           <div class="login-card__title">
-            <h2>Pumping Station IoT</h2>
+            <h2>Argus360</h2>
             <div class="login-card__subtitle">Cloud Dashboard & Control</div>
           </div>
           <button id="btn-login" class="btn btn-google">
@@ -161,7 +161,7 @@ export const App = {
       <header class="header">
         <div class="header__brand">
           <img src="/logo.png" alt="Logo" style="width: 28px; height: 28px; object-fit: contain; margin-right: 8px;">
-          Pumping Station IoT
+          <span class="header__brand-text">Argus360</span>
         </div>
         <div class="header__actions">
           <button class="btn-theme-toggle" id="btn-theme-toggle" title="${i18n.t('toggle_theme')}" aria-label="Toggle Theme">
@@ -185,7 +185,7 @@ export const App = {
 
           <div class="header__user-menu" id="btn-user-menu">
             ${AuthService.currentUser?.photoURL ? `<img src="${AuthService.currentUser.photoURL}" style="width:24px;height:24px;border-radius:12px;">` : '<i data-lucide="user"></i>'}
-            <span style="font-size: 0.85rem; margin-right: 4px;">${AuthService.currentUser?.displayName || AuthService.currentUser?.email}</span>
+            <span class="header__user-name" style="font-size: 0.85rem; margin-right: 4px;">${AuthService.currentUser?.displayName || AuthService.currentUser?.email}</span>
             <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-secondary); transition: transform 0.2s;"></i>
 
             <div class="user-dropdown" id="user-dropdown">

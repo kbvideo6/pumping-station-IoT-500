@@ -1,6 +1,8 @@
 {
   "projects": {
-    "devlopment": "pumping-station-iot"
+    "devlopment": "pumping-station-iot",
+    "development": "pumping-station-iot",
+    "staging": "argus360-c0496"
   },
   "targets": {},
   "etags": {}

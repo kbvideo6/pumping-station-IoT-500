@@ -41,7 +41,7 @@ const translations: Record<Lang, Record<string, string>> = {
     toggle_theme: 'Erscheinungsbild wechseln',
 
     // Dashboard Page
-    pumping_stations_overview: 'Pumpstationen Übersicht',
+    pumping_stations_overview: 'Argus360 Übersicht',
     total_stations: 'Stationen Gesamt',
     active_alerts: 'Aktive Alarme',
     search_placeholder: 'Station suchen (Name oder ID)...',
@@ -72,7 +72,7 @@ const translations: Record<Lang, Record<string, string>> = {
     failed_acknowledge: 'Fehler beim Bestätigen.',
 
     // Map Page
-    pumping_stations_map: 'Pumpstationen Landkarte',
+    pumping_stations_map: 'Argus360 Landkarte',
     locations_provisioned: 'Standorte aller provisionierten Stationen',
     warning: 'WARNUNG',
     show_details: 'Details anzeigen →',
@@ -229,11 +229,11 @@ const translations: Record<Lang, Record<string, string>> = {
     toggle_theme: 'Toggle Theme',
 
     // Dashboard Page
-    pumping_stations_overview: 'Pumping Stations Overview',
+    pumping_stations_overview: 'Argus360 Overview',
     total_stations: 'Total Stations',
     active_alerts: 'Active Alerts',
     search_placeholder: 'Search station (name or ID)...',
-    all_statuses: 'All Statuses',
+    all_statuses: 'All Status',
     loading_stations: 'Loading stations...',
 
     // Alerts Page
@@ -260,7 +260,7 @@ const translations: Record<Lang, Record<string, string>> = {
     failed_acknowledge: 'Failed to acknowledge.',
 
     // Map Page
-    pumping_stations_map: 'Pumping Stations Map',
+    pumping_stations_map: 'Argus360 Map',
     locations_provisioned: 'Locations of all provisioned stations',
     warning: 'WARNING',
     show_details: 'Show details →',

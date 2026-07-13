@@ -1,7 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
-exports.provisionDevice = functions.https.onCall(async (data, context) => {
+exports.provisionDevice = functions.region('europe-west1').https.onCall(async (data, context) => {
   // 1. Verify Authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -74,6 +74,12 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
 
     const currentConfig = (existingData && existingData.config) ? existingData.config : {};
 
+    const parseNumber = (val, fallback) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
     await db.ref(`/stations/${parsedStationId}`).set({
       live: currentLive,
       config: {
@@ -84,9 +90,9 @@ exports.provisionDevice = functions.https.onCall(async (data, context) => {
         reportIntervalSec: currentConfig.reportIntervalSec || 30,
         configPollIntervalSec: currentConfig.configPollIntervalSec || 300,
         stationName: resolvedName,
-        pumpPowerKW: pumpPowerKW !== undefined ? parseFloat(pumpPowerKW) : (currentConfig.pumpPowerKW || 1.5),
-        lat: lat !== undefined ? parseFloat(lat) : (currentConfig.lat || 47.0707),
-        lng: lng !== undefined ? parseFloat(lng) : (currentConfig.lng || 15.4395),
+        pumpPowerKW: parseNumber(pumpPowerKW, currentConfig.pumpPowerKW || 1.5),
+        lat: parseNumber(lat, currentConfig.lat || 0.0),
+        lng: parseNumber(lng, currentConfig.lng || 0.0),
         calibration: currentConfig.calibration || 20.0,
         latestFirmware: currentConfig.latestFirmware || {
           version: "1.0.0",

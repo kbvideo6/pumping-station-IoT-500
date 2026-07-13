@@ -301,43 +301,55 @@ export const StationDetail = {
   },
 
   _bindListeners(): void {
-    // Live data listener
-    this._liveUnsub = onValue(dbRef(db, `/stations/${this._stationId}/live`), (snapshot) => {
-      const live = snapshot.val() as LiveData | null;
-      if (!live) return;
+    // Parent node listener (live telemetry + status + config)
+    this._liveUnsub = onValue(dbRef(db, `/stations/${this._stationId}`), (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const live = data.live || {};
+      const config = data.config || {};
+      const status = data.status || {};
+
+      const isOnline = status.online === true;
+      const hasNeverConnected = !isOnline && (!live.firmwareVersion || live.firmwareVersion === "0.0.0");
 
       // -- Current
       (document.getElementById('metric-current') as HTMLElement).innerText =
-        Utils.formatCurrent(live.current);
+        hasNeverConnected ? '-- A' : Utils.formatCurrent(live.current);
 
       // -- Voltage
       (document.getElementById('metric-voltage') as HTMLElement).innerText =
-        Utils.formatVoltage(live.voltage);
+        hasNeverConnected ? '-- V' : Utils.formatVoltage(live.voltage);
 
       // -- Power
       (document.getElementById('metric-power') as HTMLElement).innerText =
-        Utils.formatPower(live.power);
+        hasNeverConnected ? '-- W' : Utils.formatPower(live.power);
 
       // -- Energy (kWh)
       (document.getElementById('metric-energy') as HTMLElement).innerText =
-        Utils.formatEnergy(live.energy);
+        hasNeverConnected ? '-- kWh' : Utils.formatEnergy(live.energy);
 
-      // -- Power Factor with color coding
+      // -- Power Factor
       const pfEl = document.getElementById('metric-pf') as HTMLElement;
-      pfEl.innerText = Utils.formatPowerFactor(live.powerFactor);
-      pfEl.className = Utils.powerFactorClass(live.powerFactor);
+      if (hasNeverConnected || live.powerFactor === undefined || live.powerFactor === null) {
+        pfEl.innerText = '--';
+        pfEl.className = '';
+      } else {
+        pfEl.innerText = Utils.formatPowerFactor(live.powerFactor);
+        pfEl.className = Utils.powerFactorClass(live.powerFactor);
+      }
 
       // -- Frequency
       (document.getElementById('metric-freq') as HTMLElement).innerText =
-        live.frequency !== undefined ? `${live.frequency.toFixed(1)} Hz` : '-- Hz';
+        hasNeverConnected || live.frequency === undefined ? '-- Hz' : `${live.frequency.toFixed(1)} Hz`;
 
       // -- RSSI
       (document.getElementById('metric-rssi') as HTMLElement).innerText =
-        live.rssi !== undefined ? `${live.rssi} dBm` : '-- dBm';
+        hasNeverConnected || live.rssi === undefined ? '-- dBm' : `${live.rssi} dBm`;
 
       // -- Battery
       const battEl = document.getElementById('metric-battery') as HTMLElement;
-      if (live.battPercent !== undefined && live.battPercent >= 0) {
+      if (!hasNeverConnected && live.battPercent !== undefined && live.battPercent >= 0) {
         battEl.innerText = `${live.battPercent.toFixed(0)}%`;
       } else {
         battEl.innerText = '--';
@@ -345,7 +357,13 @@ export const StationDetail = {
 
       // Status badge
       const badge = document.getElementById('station-status-badge') as HTMLElement;
-      if (live.alert) {
+      if (hasNeverConnected) {
+        badge.className = 'badge badge--offline';
+        badge.innerHTML = `<span class="led led--offline"></span> ${i18n.currentLang === 'de' ? 'Nie verbunden' : 'Never connected'}`;
+      } else if (!isOnline) {
+        badge.className = 'badge badge--offline';
+        badge.innerHTML = `<span class="led led--offline"></span> ${i18n.t('offline')}`;
+      } else if (live.alert) {
         badge.className = 'badge badge--alert';
         badge.innerHTML = `<span class="led led--alert"></span> ${Utils.getAlertLabel(live.alertType ?? null)}`;
       } else {
@@ -353,29 +371,26 @@ export const StationDetail = {
         badge.innerHTML = `<span class="led led--ok"></span> ${i18n.t('normal')}`;
       }
 
-      // Append to chart
-      const locale = i18n.currentLang === 'de' ? 'de-AT' : 'en-US';
-      const now = new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      this._chartLabels.push(now);
-      this._chartData.push(live.current ?? 0);
-      this._chartVoltageData.push(live.voltage ?? 0);
-      if (this._chartLabels.length > 50) {
-        this._chartLabels.shift();
-        this._chartData.shift();
-        this._chartVoltageData.shift();
+      // Append to chart (if online/connected to show historical trace)
+      if (!hasNeverConnected && live.current !== undefined && live.voltage !== undefined) {
+        const locale = i18n.currentLang === 'de' ? 'de-AT' : 'en-US';
+        const now = new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        this._chartLabels.push(now);
+        this._chartData.push(live.current);
+        this._chartVoltageData.push(live.voltage);
+        if (this._chartLabels.length > 50) {
+          this._chartLabels.shift();
+          this._chartData.shift();
+          this._chartVoltageData.shift();
+        }
+        this._chart?.update('none');
       }
-      this._chart?.update('none');
-    });
 
-    // Config listener — update station name heading and chart thresholds
-    this._configUnsub = onValue(dbRef(db, `/stations/${this._stationId}/config`), (snapshot) => {
-      const config = snapshot.val() as StationConfig | null;
-      if (!config) return;
-
+      // Config: Update name heading
       const heading = document.getElementById('station-name-heading') as HTMLElement;
       if (config.stationName) heading.innerText = config.stationName;
 
-      // Update chart annotation lines
+      // Update chart upper warning line
       if (this._chart && config.highThreshold) {
         const annotations = (this._chart.options.plugins as Record<string, unknown>)?.annotation as
           { annotations: { highLine?: { yMin: number; yMax: number } } } | undefined;

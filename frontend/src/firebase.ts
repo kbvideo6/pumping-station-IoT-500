@@ -23,10 +23,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app);
 export const firestore = getFirestore(app);
-export const functions = getFunctions(app);
+export const functions = getFunctions(app, 'europe-west1');
 
-// Automatically connect to local Firebase emulators when running on localhost
-if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+// Automatically connect to local Firebase emulators when running on localhost and VITE_USE_EMULATORS is not 'false'
+const useEmulators = import.meta.env.VITE_USE_EMULATORS !== 'false';
+if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && useEmulators) {
   console.log('Connecting to local Firebase emulators...');
   connectAuthEmulator(auth, 'http://127.0.0.1:9099');
   connectDatabaseEmulator(db, '127.0.0.1', 9000);

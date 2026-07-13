@@ -2,9 +2,9 @@
 #define CONFIG_H
 
 // Firebase configuration
-#define FIREBASE_PROJECT_ID   "pumping-station-iot"
-#define FIREBASE_API_KEY      "AIzaSyD-YOUR-REAL-FIREBASE-WEB-API-KEY-HERE"
-#define FIREBASE_DB_URL       "https://pumping-station-iot-default-rtdb.europe-west1.firebasedatabase.app"
+#define FIREBASE_PROJECT_ID   "argus360-c0496"
+#define FIREBASE_API_KEY      "AIzaSyBtGpOwNCicAIl5FUh07nXb39Dh-XPdabE"
+#define FIREBASE_DB_URL       "https://argus360-c0496-default-rtdb.europe-west1.firebasedatabase.app"
 
 // Device details (to be replaced with specific station credentials during provisioning)
 #define DEFAULT_STATION_ID    "STATION_001"

@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const { sendAlertEmail } = require('./email');
 
 // Runs every 5 minutes
-exports.checkOfflineStations = functions.pubsub
+exports.checkOfflineStations = functions.region('europe-west1').pubsub
   .schedule('*/5 * * * *')
   .onRun(async (context) => {
     const db = admin.database();

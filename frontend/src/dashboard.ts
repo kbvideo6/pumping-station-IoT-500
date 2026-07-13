@@ -47,12 +47,24 @@ export const Dashboard = {
             <input type="text" id="search-station" class="input" placeholder="${i18n.t('search_placeholder')}">
           </div>
           <div class="input-group" style="width: 180px;">
-            <select id="filter-status" class="input">
-              <option value="ALL">${i18n.t('all_statuses')}</option>
-              <option value="ONLINE">${i18n.t('online')}</option>
-              <option value="OFFLINE">${i18n.t('offline')}</option>
-              <option value="ALERT">${i18n.t('alert')}</option>
-            </select>
+            <div class="custom-select">
+              <div class="custom-select__trigger">
+                <span>${i18n.t('all_statuses')}</span>
+                <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
+              </div>
+              <div class="custom-select__options">
+                <div class="custom-select__option selected" data-value="ALL">${i18n.t('all_statuses')}</div>
+                <div class="custom-select__option" data-value="ONLINE">${i18n.t('online')}</div>
+                <div class="custom-select__option" data-value="OFFLINE">${i18n.t('offline')}</div>
+                <div class="custom-select__option" data-value="ALERT">${i18n.t('alert')}</div>
+              </div>
+              <select id="filter-status" style="display: none;">
+                <option value="ALL">${i18n.t('all_statuses')}</option>
+                <option value="ONLINE">${i18n.t('online')}</option>
+                <option value="OFFLINE">${i18n.t('offline')}</option>
+                <option value="ALERT">${i18n.t('alert')}</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -70,6 +82,7 @@ export const Dashboard = {
 
     refreshIcons();
     this._setupListeners();
+    Utils.initCustomSelects();
   },
 
   _setupListeners(): void {

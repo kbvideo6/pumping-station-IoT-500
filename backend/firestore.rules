@@ -37,8 +37,8 @@ service cloud.firestore {
         isAdmin()
       );
       
-      allow create: if isAuthenticated() && 
-                    request.auth.uid == userId &&
+      allow create: if isAuthenticated() && (
+                    (request.auth.uid == userId &&
                     (
                       request.resource.data.role == 'viewer' ||
                       (
@@ -46,7 +46,8 @@ service cloud.firestore {
                         exists(/databases/$(database)/documents/users/$(request.auth.token.email)) &&
                         get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == request.resource.data.role
                       )
-                    );
+                    )) || isAdmin()
+                  );
                     
       allow update: if isAuthenticated() && (
         (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||

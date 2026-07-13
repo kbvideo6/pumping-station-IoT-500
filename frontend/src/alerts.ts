@@ -39,20 +39,43 @@ export const AlertsList = {
         <div class="card filter-row" style="padding: var(--space-4);">
           <div class="input-group">
             <label class="input-label">${i18n.t('status')}</label>
-            <select id="alert-filter-ack" class="input">
-              <option value="ALL">${i18n.t('all')}</option>
-              <option value="UNACK">${i18n.t('unack')}</option>
-              <option value="ACK">${i18n.t('ack')}</option>
-            </select>
+            <div class="custom-select">
+              <div class="custom-select__trigger">
+                <span>${i18n.t('all')}</span>
+                <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
+              </div>
+              <div class="custom-select__options">
+                <div class="custom-select__option selected" data-value="ALL">${i18n.t('all')}</div>
+                <div class="custom-select__option" data-value="UNACK">${i18n.t('unack')}</div>
+                <div class="custom-select__option" data-value="ACK">${i18n.t('ack')}</div>
+              </div>
+              <select id="alert-filter-ack" style="display: none;">
+                <option value="ALL">${i18n.t('all')}</option>
+                <option value="UNACK">${i18n.t('unack')}</option>
+                <option value="ACK">${i18n.t('ack')}</option>
+              </select>
+            </div>
           </div>
           <div class="input-group">
             <label class="input-label">${i18n.t('type')}</label>
-            <select id="alert-filter-type" class="input">
-              <option value="ALL">${i18n.t('all_types')}</option>
-              <option value="HIGH_CURRENT">${i18n.t('alert_HIGH_CURRENT')}</option>
-              <option value="LOW_CURRENT">${i18n.t('alert_LOW_CURRENT')}</option>
-              <option value="DEVICE_OFFLINE">${i18n.t('offline')}</option>
-            </select>
+            <div class="custom-select">
+              <div class="custom-select__trigger">
+                <span>${i18n.t('all_types')}</span>
+                <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
+              </div>
+              <div class="custom-select__options">
+                <div class="custom-select__option selected" data-value="ALL">${i18n.t('all_types')}</div>
+                <div class="custom-select__option" data-value="HIGH_CURRENT">${i18n.t('alert_HIGH_CURRENT')}</div>
+                <div class="custom-select__option" data-value="LOW_CURRENT">${i18n.t('alert_LOW_CURRENT')}</div>
+                <div class="custom-select__option" data-value="DEVICE_OFFLINE">${i18n.t('offline')}</div>
+              </div>
+              <select id="alert-filter-type" style="display: none;">
+                <option value="ALL">${i18n.t('all_types')}</option>
+                <option value="HIGH_CURRENT">${i18n.t('alert_HIGH_CURRENT')}</option>
+                <option value="LOW_CURRENT">${i18n.t('alert_LOW_CURRENT')}</option>
+                <option value="DEVICE_OFFLINE">${i18n.t('offline')}</option>
+              </select>
+            </div>
           </div>
           <button id="btn-load-alerts" class="btn btn-primary" style="align-self: flex-end;">
             <i data-lucide="refresh-cw"></i> ${i18n.t('load')}
@@ -83,6 +106,7 @@ export const AlertsList = {
 
     refreshIcons();
     this._setupListeners();
+    Utils.initCustomSelects();
   },
 
   _setupListeners(): void {
@@ -173,7 +197,7 @@ export const AlertsList = {
         : `<span class="badge badge--alert"><i data-lucide="alert-triangle" style="width:10px;height:10px;"></i> ${i18n.t('open_alert')}</span>`;
 
       const actionCell = AuthService.isAdmin()
-        ? `<td>${!alert.acknowledged
+        ? `<td data-label="${i18n.t('col_action')}">${!alert.acknowledged
             ? `<button class="btn btn-ghost" style="font-size:0.8rem; padding: 4px 10px;" data-action="acknowledge" data-id="${alert.id}">
                 <i data-lucide="check"></i> ${i18n.t('btn_acknowledge')}
                </button>`
@@ -183,12 +207,12 @@ export const AlertsList = {
 
       return `
         <tr>
-          <td class="td--mono" style="font-size:0.8rem;">${dateStr}</td>
-          ${!this._stationId ? `<td class="td--primary">${alert.stationName ?? alert.stationId}</td>` : ''}
-          <td>${typeLabel}</td>
-          <td>${alert.currentValue !== null ? alert.currentValue.toFixed(2) + ' A' : '--'}</td>
-          <td>${alert.threshold !== null ? alert.threshold.toFixed(1) + ' A' : '--'}</td>
-          <td>${statusBadge}</td>
+          <td class="td--mono" data-label="${i18n.t('col_timestamp')}" style="font-size:0.8rem;">${dateStr}</td>
+          ${!this._stationId ? `<td class="td--primary" data-label="${i18n.t('col_station')}">${alert.stationName ?? alert.stationId}</td>` : ''}
+          <td data-label="${i18n.t('col_type')}">${typeLabel}</td>
+          <td data-label="${i18n.t('col_value')}">${alert.currentValue !== null ? alert.currentValue.toFixed(2) + ' A' : '--'}</td>
+          <td data-label="${i18n.t('col_threshold')}">${alert.threshold !== null ? alert.threshold.toFixed(1) + ' A' : '--'}</td>
+          <td data-label="${i18n.t('col_status')}">${statusBadge}</td>
           ${actionCell}
         </tr>
       `;

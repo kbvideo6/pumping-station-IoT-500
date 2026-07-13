@@ -2,7 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { sendAlertEmail } = require('./email');
 
-exports.onLiveDataWrite = functions.database
+exports.onLiveDataWrite = functions.region('europe-west1').database
   .ref('/stations/{stationId}/live')
   .onWrite(async (change, context) => {
     const stationId = context.params.stationId;

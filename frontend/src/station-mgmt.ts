@@ -39,7 +39,7 @@ export const StationManagement = {
         <div class="detail-header">
           <h1>${i18n.t('manage_stations')}</h1>
           <button id="btn-add-station" class="btn btn-primary">
-            <i data-lucide="plus-circle"></i> ${i18n.t('add_station')}
+            <i data-lucide="plus-circle"></i> <span>${i18n.t('add_station')}</span>
           </button>
         </div>
         <div class="table-wrapper">
@@ -94,33 +94,64 @@ export const StationManagement = {
 
       const live = data.live || {};
       const config = data.config || {};
-      
+      const status = data.status || {};
+      const isOnline = status.online === true;
+      const hasNeverConnected = !isOnline && (!live.firmwareVersion || live.firmwareVersion === "0.0.0");
+
+      let statusNotice = '';
+      if (hasNeverConnected) {
+        statusNotice = `
+          <div style="padding: 10px; border-radius: var(--radius-md); background: var(--status-offline-dim); border: 1px solid var(--status-offline-border); color: var(--text-secondary); text-align: center; margin-bottom: 16px; font-size: 0.85rem;">
+            ⚠️ ${i18n.currentLang === 'de' ? 'Station war noch nie online. Bitte schließen Sie die Hardware an.' : 'Station has never connected. Please connect the hardware.'}
+          </div>
+        `;
+      } else if (!isOnline) {
+        const lastSeenStr = Utils.formatTimestamp(status.lastSeen || live.timestamp);
+        statusNotice = `
+          <div style="padding: 10px; border-radius: var(--radius-md); background: var(--status-warn-dim); border: 1px solid var(--status-warn-border); color: var(--status-warn); text-align: center; margin-bottom: 16px; font-size: 0.85rem;">
+            ⚠️ ${i18n.currentLang === 'de' ? `Station ist offline. Zeige letzte bekannte Daten vom ${lastSeenStr}` : `Station is offline. Showing last known data from ${lastSeenStr}`}
+          </div>
+        `;
+      } else {
+        statusNotice = `
+          <div style="padding: 10px; border-radius: var(--radius-md); background: var(--status-ok-dim); border: 1px solid var(--status-ok-border); color: var(--status-ok); text-align: center; margin-bottom: 16px; font-size: 0.85rem; font-weight: 600;">
+            🟢 ${i18n.currentLang === 'de' ? 'Station ist online (Live-Daten)' : 'Station is online (Live Data)'}
+          </div>
+        `;
+      }
+
+      const showValue = (val: number | undefined, suffix: string, decimals = 2) => {
+        if (hasNeverConnected || val === undefined || val === null) return '--';
+        return val.toFixed(decimals) + ' ' + suffix;
+      };
+
       const content = `
         <h3 class="modal__title">${i18n.currentLang === 'de' ? 'Live-Daten' : 'Live Data'} - ${config.stationName || stationId}</h3>
+        ${statusNotice}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-          <div class="card" style="padding: 10px;">
+          <div class="card" style="padding: 10px; transform: none; box-shadow: none;">
             <div style="font-size: 0.8rem; color: var(--text-secondary);">${i18n.t('current_a')}</div>
-            <div style="font-size: 1.2rem; font-weight: bold;">${live.current !== undefined ? live.current.toFixed(2) + ' A' : '--'}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${showValue(live.current, 'A', 2)}</div>
           </div>
-          <div class="card" style="padding: 10px;">
+          <div class="card" style="padding: 10px; transform: none; box-shadow: none;">
             <div style="font-size: 0.8rem; color: var(--text-secondary);">Voltage</div>
-            <div style="font-size: 1.2rem; font-weight: bold;">${live.voltage !== undefined ? live.voltage.toFixed(1) + ' V' : '--'}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${showValue(live.voltage, 'V', 1)}</div>
           </div>
-          <div class="card" style="padding: 10px;">
+          <div class="card" style="padding: 10px; transform: none; box-shadow: none;">
             <div style="font-size: 0.8rem; color: var(--text-secondary);">Power</div>
-            <div style="font-size: 1.2rem; font-weight: bold;">${live.power !== undefined ? live.power.toFixed(0) + ' W' : '--'}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${showValue(live.power, 'W', 0)}</div>
           </div>
-          <div class="card" style="padding: 10px;">
+          <div class="card" style="padding: 10px; transform: none; box-shadow: none;">
             <div style="font-size: 0.8rem; color: var(--text-secondary);">Energy</div>
-            <div style="font-size: 1.2rem; font-weight: bold;">${live.energy !== undefined ? live.energy.toFixed(2) + ' kWh' : '--'}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${showValue(live.energy, 'kWh', 2)}</div>
           </div>
-          <div class="card" style="padding: 10px;">
+          <div class="card" style="padding: 10px; transform: none; box-shadow: none;">
             <div style="font-size: 0.8rem; color: var(--text-secondary);">Frequency</div>
-            <div style="font-size: 1.2rem; font-weight: bold;">${live.frequency !== undefined ? live.frequency.toFixed(1) + ' Hz' : '--'}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${showValue(live.frequency, 'Hz', 1)}</div>
           </div>
-          <div class="card" style="padding: 10px;">
+          <div class="card" style="padding: 10px; transform: none; box-shadow: none;">
             <div style="font-size: 0.8rem; color: var(--text-secondary);">Power Factor</div>
-            <div style="font-size: 1.2rem; font-weight: bold;">${live.powerFactor !== undefined ? live.powerFactor.toFixed(2) : '--'}</div>
+            <div style="font-size: 1.2rem; font-weight: bold;">${showValue(live.powerFactor, '', 2)}</div>
           </div>
         </div>
         <div class="modal__footer">
@@ -156,17 +187,17 @@ export const StationManagement = {
 
       tbody.innerHTML = this._stations.map((s) => `
         <tr>
-          <td class="td--primary td--mono">${s.id}</td>
-          <td>${s.name}</td>
-          <td>
+          <td class="td--primary td--mono" data-label="${i18n.t('station_id')}">${s.id}</td>
+          <td data-label="${i18n.t('name')}">${s.name}</td>
+          <td data-label="${i18n.t('status')}">
             ${s.online
               ? `<span class="badge badge--ok"><span class="led led--ok"></span> ${i18n.t('online')}</span>`
               : `<span class="badge badge--offline"><span class="led led--offline"></span> ${i18n.t('offline')}</span>`}
           </td>
-          <td style="font-size:0.8rem; color: var(--text-muted);">
+          <td data-label="${i18n.t('gps')}" style="font-size:0.8rem; color: var(--text-muted);">
             ${(s.lat !== 0 || s.lng !== 0) ? `${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` : (i18n.currentLang === 'de' ? 'Kein GPS-Fix' : 'No GPS Fix')}
           </td>
-          <td>
+          <td data-label="${i18n.t('actions')}">
             <div style="display: flex; gap: 6px;">
               <button class="btn btn-secondary btn-icon" title="${i18n.currentLang === 'de' ? 'Live-Daten ansehen' : 'View Live Data'}"
                 data-action="livedata" data-id="${s.id}">
@@ -246,6 +277,18 @@ export const StationManagement = {
       const stationObj = this._stations.find((s) => s.id === stationId);
       const resolvedName = (name || stationObj?.name || stationId).trim();
 
+      // Show loading spinner modal
+      Utils.closeModal();
+      Utils.openModal(`
+        <div style="text-align: center; padding: var(--space-6) 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-4);">
+          <div class="spinner spinner--lg"></div>
+          <h3 style="color: var(--text-primary); margin-top: var(--space-2);">${i18n.currentLang === 'de' ? 'Provisionierung läuft...' : 'Provisioning Station...'}</h3>
+          <p style="color: var(--text-secondary); font-size: 0.9rem; max-width: 320px; line-height: 1.4;">
+            ${i18n.currentLang === 'de' ? 'Der Server generiert ein sicheres Token für diese Station.' : 'Generating a secure token for the device. Please wait.'}
+          </p>
+        </div>
+      `);
+
       const provisionDeviceFn = httpsCallable<
         { stationId: string; stationName: string; name: string; pumpPowerKW?: number; notificationEmails?: string },
         { customToken: string }
@@ -260,19 +303,41 @@ export const StationManagement = {
       });
       const token = result.data.customToken;
 
+      Utils.closeModal(); // Close loading spinner modal
       Utils.openModal(`
         <h3 class="modal__title">${i18n.currentLang === 'de' ? `Station "${stationId}" provisioniert!` : `Station "${stationId}" provisioned!`}</h3>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--space-4);">
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--space-4); line-height: 1.4;">
           ${i18n.currentLang === 'de' 
             ? 'Kopiere diesen Token und trage ihn in <code>src/config.h</code> als <code>DEFAULT_CUSTOM_TOKEN</code> ein, dann flashe die Firmware auf das ESP32-Gerät.' 
             : 'Copy this token and insert it in <code>src/config.h</code> as <code>DEFAULT_CUSTOM_TOKEN</code>, then flash the firmware to the ESP32 device.'}
         </p>
-        <label class="input-label">Provisioning Token</label>
-        <div class="token-box">${token}</div>
+        <label class="input-label">${i18n.currentLang === 'de' ? 'Provisionierungs-Token' : 'Provisioning Token'}</label>
+        <div style="position: relative; display: flex; flex-direction: column;">
+          <div class="token-box" id="token-box" style="padding-right: var(--space-10); max-height: 180px; overflow-y: auto;">${token}</div>
+          <button class="btn btn-ghost btn-icon" id="btn-copy-token" title="${i18n.currentLang === 'de' ? 'Kopieren' : 'Copy'}" 
+                  style="position: absolute; right: var(--space-2); top: 12px; background-color: var(--bg-surface); z-index: 10; border-color: var(--border-default);">
+            <i data-lucide="copy" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
+          </button>
+        </div>
         <div class="modal__footer">
           <button class="btn btn-primary" id="modal-close-provision">${i18n.currentLang === 'de' ? 'Fertig' : 'Done'}</button>
         </div>
       `);
+
+      // Clipboard copy action handler
+      document.getElementById('btn-copy-token')?.addEventListener('click', () => {
+        navigator.clipboard.writeText(token).then(() => {
+          Utils.showToast(i18n.currentLang === 'de' ? 'Token kopiert!' : 'Token copied!', 'success');
+          const copyBtn = document.getElementById('btn-copy-token');
+          if (copyBtn) {
+            copyBtn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px; color: var(--status-ok);"></i>';
+            refreshIcons();
+          }
+        }).catch((err) => {
+          console.error('Failed to copy:', err);
+          Utils.showToast(i18n.currentLang === 'de' ? 'Kopieren fehlgeschlagen.' : 'Failed to copy.', 'error');
+        });
+      });
 
       document.getElementById('modal-close-provision')?.addEventListener('click', () => {
         Utils.closeModal();
@@ -281,6 +346,7 @@ export const StationManagement = {
 
       Utils.showToast(i18n.currentLang === 'de' ? `Station ${stationId} erfolgreich angelegt!` : `Station ${stationId} successfully created!`, 'success');
     } catch (error: unknown) {
+      Utils.closeModal(); // Close loading spinner modal
       console.error('Provisioning failed:', error);
       const errObj = error as { message?: string; details?: string };
       const errorMessage = errObj?.message || errObj?.details || (i18n.currentLang === 'de' ? 'Fehler bei der Provisionierung.' : 'Provisioning failed.');

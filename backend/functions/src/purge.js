@@ -2,7 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
 // Runs daily at 02:00 UTC
-exports.purgeOldData = functions.pubsub
+exports.purgeOldData = functions.region('europe-west1').pubsub
   .schedule('0 2 * * *')
   .timeZone('UTC')
   .onRun(async (context) => {

@@ -1,10 +1,18 @@
 const sgMail = require('@sendgrid/mail');
+const functions = require('firebase-functions');
 
-const apiKey = process.env.SENDGRID_API_KEY;
+let config = {};
+try {
+  config = functions.config();
+} catch (e) {
+  // Ignore config errors during tests
+}
+
+const apiKey = (config.sendgrid && config.sendgrid.key) || process.env.SENDGRID_API_KEY;
 if (apiKey) {
   sgMail.setApiKey(apiKey);
 } else {
-  console.warn("SENDGRID_API_KEY environment variable is not set. Emails will only be logged.");
+  console.warn("SENDGRID_API_KEY configuration is not set. Emails will only be logged.");
 }
 
 exports.sendAlertEmail = async (to, alert) => {
@@ -60,7 +68,7 @@ exports.sendAlertEmail = async (to, alert) => {
 
   const msg = {
     to,
-    from: process.env.ALERT_FROM_EMAIL || 'alerts@pumping-station-iot.com',
+    from: (config.sendgrid && config.sendgrid.from) || process.env.ALERT_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL || 'alerts@pumping-station-iot.com',
     subject,
     html
   };
