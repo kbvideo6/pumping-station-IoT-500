@@ -13,9 +13,9 @@
 #define DEFAULT_CUSTOM_TOKEN  "PLACE_PROVISIONING_TOKEN_HERE"
 
 // Cellular settings
-#define CELLULAR_APN          "iot.1nce.net" // Default 1NCE SIM APN
-#define CELLULAR_USER         ""
-#define CELLULAR_PASS         ""
+#define CELLULAR_APN          "a1.net" // A1 Telekom Austria SIM APN
+#define CELLULAR_USER         "ppp@a1plus.at"
+#define CELLULAR_PASS         "ppp"
 
 // Hardware pin mappings (Waveshare ESP32-S3 A7670E 4G board default mapping)
 #define MODEM_UART_TX_PIN     18
