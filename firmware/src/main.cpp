@@ -56,7 +56,7 @@ const unsigned long GPS_CHECK_INTERVAL_MS = 60000; // Check GPS every 1 minute
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  delay(8000); // 8-second delay to allow USB CDC Serial port to connect after software resets
   Serial.println("[System] Booting Pumping Station IoT Controller v1.0.0...");
 
   // Initialize I2C for Battery Fuel Gauge
