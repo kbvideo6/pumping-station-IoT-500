@@ -9,8 +9,8 @@
 
 static const char* TAG = "A7670Modem";
 
-A7670Modem::A7670Modem(uart_port_t uartPort, int pwrPin, int rstPin, int flightPin) {
-  _uartPort = uartPort;
+A7670Modem::A7670Modem(int uartPort, int pwrPin, int rstPin, int flightPin) {
+  _uartPort = (uart_port_t)uartPort;
   _pwrPin = pwrPin;
   _rstPin = rstPin;
   _flightPin = flightPin;
@@ -27,6 +27,8 @@ void A7670Modem::begin() {
   uart_config.rx_flow_ctrl_thresh = 0;
   uart_config.source_clk = UART_SCLK_DEFAULT;
   
+  // Safe UART deletion and installation to heal the serial port state on re-init
+  uart_driver_delete(_uartPort);
   ESP_ERROR_CHECK(uart_driver_install(_uartPort, 1024 * 4, 1024 * 4, 0, NULL, 0));
   ESP_ERROR_CHECK(uart_param_config(_uartPort, &uart_config));
   ESP_ERROR_CHECK(uart_set_pin(_uartPort, MODEM_UART_TX_PIN, MODEM_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));

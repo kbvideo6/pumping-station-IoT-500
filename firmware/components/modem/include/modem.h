@@ -13,7 +13,7 @@ struct HttpResponse {
 
 class A7670Modem {
 public:
-  A7670Modem(uart_port_t uartPort, int pwrPin, int rstPin, int flightPin);
+  A7670Modem(int uartPort, int pwrPin, int rstPin, int flightPin);
   void begin();
   bool powerOn();
   void powerOff();
