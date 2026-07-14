@@ -12,8 +12,8 @@ def load_config_from_header(header_path):
         "FIREBASE_PROJECT_ID": "argus360-c0496",
         "FIREBASE_API_KEY": "AIzaSyBtGpOwNCicAIl5FUh07nXb39Dh-XPdabE",
         "FIREBASE_DB_URL": "https://argus360-c0496-default-rtdb.europe-west1.firebasedatabase.app",
-        "DEFAULT_STATION_ID": "STATION_001",
-        "DEFAULT_CUSTOM_TOKEN": ""
+        "DEFAULT_STATION_ID": "STATION_002",
+        "DEFAULT_CUSTOM_TOKEN": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImlhdCI6MTc4NDAyMjQ5NCwiZXhwIjoxNzg0MDI2MDk0LCJpc3MiOiJhcmd1czM2MC1jMDQ5NkBhcHBzcG90LmdzZXJ2aWNlYWNjb3VudC5jb20iLCJzdWIiOiJhcmd1czM2MC1jMDQ5NkBhcHBzcG90LmdzZXJ2aWNlYWNjb3VudC5jb20iLCJ1aWQiOiJTVEFUSU9OXzAwMiIsImNsYWltcyI6eyJkZXZpY2VUeXBlIjoiZXNwMzIiLCJzdGF0aW9uSWQiOiJTVEFUSU9OXzAwMiJ9fQ.m3MW8vuuu_fMfOk94587rvbiy0WituVYmiI7eLaVb7tn_Aglyq689UzjSz58zFhu8wyBaLZqFJMZCARCXDRKog8G_zXBUoLTOZfjbquGm0qWT1hNE_SX27LOxabC0f8tD1pY9mtKTkpmiTfP6ImInV9wKYNps0vkd0X_n1UuMAVD9kLm5ejBCLT-r1MBWKVrC-gYwOR59QA89X9QPQsBsNoSoMR8Y-bhlnpbkcqiNwt_J1ddqVQbCxzQQ7Ag2DRHxbsrBdasxtjl5u5iQ6YbGifjCirzxfL9-v7xlQfXDCrEmBeubg34GJ9GA4EF1pQpUb8v9w34P35gKZhNRCDEqQ"
     }
     try:
         with open(header_path, 'r', encoding='utf-8') as f:
@@ -44,6 +44,14 @@ API_KEY = CONFIG["FIREBASE_API_KEY"]
 DB_URL = CONFIG["FIREBASE_DB_URL"]
 STATION_ID = CONFIG["DEFAULT_STATION_ID"]
 CUSTOM_TOKEN = CONFIG["DEFAULT_CUSTOM_TOKEN"]
+
+# Override via command line if provided
+if len(sys.argv) > 1:
+    STATION_ID = sys.argv[1]
+    print(f"[*] Overriding Station ID from command line: {STATION_ID}")
+if len(sys.argv) > 2:
+    CUSTOM_TOKEN = sys.argv[2]
+    print(f"[*] Overriding Custom Token from command line.")
 
 # ── Authentication Helper ────────────────────────────────────
 class FirebaseAuthSimulator:
