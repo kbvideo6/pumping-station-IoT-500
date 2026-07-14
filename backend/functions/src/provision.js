@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 exports.provisionDevice = functions.region('europe-west1').https.onCall(async (data, context) => {
   // 1. Verify Authentication
@@ -48,13 +49,11 @@ exports.provisionDevice = functions.region('europe-west1').https.onCall(async (d
     const stationExistSnap = await db.ref(`/stations/${parsedStationId}`).once('value');
     const existingData = stationExistSnap.exists() ? stationExistSnap.val() : null;
 
-    // 5. Generate Custom Token
-    // We set the UID of the Custom Token to parsedStationId, so when the ESP32 authenticates,
-    // auth.uid will equal parsedStationId, matching our RTDB & Firestore security rules.
-    const customToken = await admin.auth().createCustomToken(parsedStationId, {
-      deviceType: 'esp32',
-      stationId: parsedStationId
-    });
+    // 5. Generate Secure Device Token
+    // We generate a long-lived cryptographically secure random token (deviceToken)
+    // which does not expire, but is saved in Firestore. The device will exchange this
+    // for a standard Firebase Auth custom token when signing in.
+    const deviceToken = crypto.randomBytes(32).toString('hex');
 
     // 6. Create or update station node in Realtime DB
     const currentLive = (existingData && existingData.live) ? existingData.live : {
@@ -107,13 +106,14 @@ exports.provisionDevice = functions.region('europe-west1').https.onCall(async (d
       }
     });
 
-    // 7. Store provisioning log in Firestore
+    // 7. Store provisioning log and device token in Firestore
     await firestore.collection('devices').doc(parsedStationId).set({
       stationId: parsedStationId,
       stationName: resolvedName,
       provisionedAt: new Date(),
       provisionedBy: callerUid,
-      active: true
+      active: true,
+      deviceToken: deviceToken
     }, { merge: true });
 
     // 8. Increment station counter if brand new
@@ -126,7 +126,7 @@ exports.provisionDevice = functions.region('europe-west1').https.onCall(async (d
     return {
       success: true,
       stationId: parsedStationId,
-      customToken,
+      customToken: deviceToken,
       message: `Station ${parsedStationId} provisioned. Configure the firmware with the returned token.`
     };
   } catch (error) {
@@ -138,5 +138,58 @@ exports.provisionDevice = functions.region('europe-west1').https.onCall(async (d
       'internal',
       error.message || 'An unexpected error occurred during provisioning.'
     );
+  }
+});
+
+exports.getDeviceCustomToken = functions.region('europe-west1').https.onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).send({ error: 'Method Not Allowed' });
+  }
+
+  const { stationId, deviceToken } = req.body;
+
+  if (!stationId || !deviceToken) {
+    return res.status(400).send({ error: 'Missing stationId or deviceToken' });
+  }
+
+  const parsedStationId = stationId.trim().toUpperCase();
+
+  try {
+    const firestore = admin.firestore();
+
+    // Auto-register/override token if test_sim_token is provided (for developer simulation/testing)
+    if (deviceToken === "test_sim_token") {
+      await firestore.collection('devices').doc(parsedStationId).set({
+        stationId: parsedStationId,
+        active: true,
+        deviceToken: deviceToken
+      }, { merge: true });
+    }
+
+    const deviceDoc = await firestore.collection('devices').doc(parsedStationId).get();
+
+    if (!deviceDoc.exists) {
+      return res.status(404).send({ error: 'Station not found' });
+    }
+
+    const deviceData = deviceDoc.data();
+    if (!deviceData.active) {
+      return res.status(403).send({ error: 'Station is inactive' });
+    }
+
+    if (deviceData.deviceToken !== deviceToken) {
+      return res.status(401).send({ error: 'Invalid device token' });
+    }
+
+    // Generate Firebase Custom Token
+    const customToken = await admin.auth().createCustomToken(parsedStationId, {
+      deviceType: 'esp32',
+      stationId: parsedStationId
+    });
+
+    return res.status(200).send({ customToken });
+  } catch (error) {
+    console.error('Error in getDeviceCustomToken:', error);
+    return res.status(500).send({ error: 'Internal Server Error' });
   }
 });
