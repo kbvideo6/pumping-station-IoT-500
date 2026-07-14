@@ -1,0 +1,5 @@
+-mlongcalls
+-fno-builtin-memcpy
+-fno-builtin-memset
+-fno-builtin-bzero
+"-specs=D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/specs/picolibc.specs"

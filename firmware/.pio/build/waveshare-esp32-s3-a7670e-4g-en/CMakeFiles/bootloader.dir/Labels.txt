@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/CMakeFiles/bootloader
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/CMakeFiles/bootloader.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/CMakeFiles/bootloader-complete.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+D:/Fiverr/order00110/firmware/.pio/build/waveshare-esp32-s3-a7670e-4g-en/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
