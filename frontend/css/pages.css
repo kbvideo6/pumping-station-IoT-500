@@ -281,7 +281,7 @@
 }
 
 .map-popup {
-  color: var(--bg-base);
+  color: #1e293b !important;
 }
 
 .map-popup__title {

@@ -312,26 +312,27 @@ export const StationDetail = {
 
       const isOnline = status.online === true;
       const hasNeverConnected = !isOnline && (!live.firmwareVersion || live.firmwareVersion === "0.0.0");
+      const showOfflinePlaceholder = hasNeverConnected || !isOnline;
 
       // -- Current
       (document.getElementById('metric-current') as HTMLElement).innerText =
-        hasNeverConnected ? '-- A' : Utils.formatCurrent(live.current);
+        showOfflinePlaceholder ? '-- A' : Utils.formatCurrent(live.current);
 
       // -- Voltage
       (document.getElementById('metric-voltage') as HTMLElement).innerText =
-        hasNeverConnected ? '-- V' : Utils.formatVoltage(live.voltage);
+        showOfflinePlaceholder ? '-- V' : Utils.formatVoltage(live.voltage);
 
       // -- Power
       (document.getElementById('metric-power') as HTMLElement).innerText =
-        hasNeverConnected ? '-- W' : Utils.formatPower(live.power);
+        showOfflinePlaceholder ? '-- W' : Utils.formatPower(live.power);
 
       // -- Energy (kWh)
       (document.getElementById('metric-energy') as HTMLElement).innerText =
-        hasNeverConnected ? '-- kWh' : Utils.formatEnergy(live.energy);
+        showOfflinePlaceholder ? '-- kWh' : Utils.formatEnergy(live.energy);
 
       // -- Power Factor
       const pfEl = document.getElementById('metric-pf') as HTMLElement;
-      if (hasNeverConnected || live.powerFactor === undefined || live.powerFactor === null) {
+      if (showOfflinePlaceholder || live.powerFactor === undefined || live.powerFactor === null) {
         pfEl.innerText = '--';
         pfEl.className = '';
       } else {
@@ -341,15 +342,15 @@ export const StationDetail = {
 
       // -- Frequency
       (document.getElementById('metric-freq') as HTMLElement).innerText =
-        hasNeverConnected || live.frequency === undefined ? '-- Hz' : `${live.frequency.toFixed(1)} Hz`;
+        showOfflinePlaceholder || live.frequency === undefined ? '-- Hz' : `${live.frequency.toFixed(1)} Hz`;
 
       // -- RSSI
       (document.getElementById('metric-rssi') as HTMLElement).innerText =
-        hasNeverConnected || live.rssi === undefined ? '-- dBm' : `${live.rssi} dBm`;
+        showOfflinePlaceholder || live.rssi === undefined ? '-- dBm' : `${live.rssi} dBm`;
 
       // -- Battery
       const battEl = document.getElementById('metric-battery') as HTMLElement;
-      if (!hasNeverConnected && live.battPercent !== undefined && live.battPercent >= 0) {
+      if (!showOfflinePlaceholder && live.battPercent !== undefined && live.battPercent >= 0) {
         battEl.innerText = `${live.battPercent.toFixed(0)}%`;
       } else {
         battEl.innerText = '--';
@@ -372,7 +373,7 @@ export const StationDetail = {
       }
 
       // Append to chart (if online/connected to show historical trace)
-      if (!hasNeverConnected && live.current !== undefined && live.voltage !== undefined) {
+      if (isOnline && live.current !== undefined && live.voltage !== undefined) {
         const locale = i18n.currentLang === 'de' ? 'de-AT' : 'en-US';
         const now = new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         this._chartLabels.push(now);

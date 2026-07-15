@@ -26,10 +26,11 @@ Each physical ESP32-S3 board must be:
 | Library | Purpose |
 |---------|---------|
 | `mandulaj/PZEM-004T-v30 @ ^1.1.2` | PZEM-004T Modbus driver |
-| `vshymanskyy/TinyGSM` | 4G modem AT command abstraction |
-| `vshymanskyy/StreamDebugger` | Debug serial forwarding |
-| `mobizt/Firebase-ESP-Client` | Firebase RTDB / Firestore SDK |
-| `bblanchon/ArduinoJson` | JSON serialization |
+| `adafruit/Adafruit NeoPixel @ ^1.12.3` | Status RGB LED driver |
+| `adafruit/Adafruit MAX1704X @ ^1.2.2` | MAX17048 I2C Battery Gauge driver |
+| `bblanchon/ArduinoJson @ ^7.0.0` | JSON serialization |
+
+> **Modem Abstraction:** To maximize reliability and error handling, this firmware does **not** use `TinyGSM` or the `Firebase-ESP-Client` library. Instead, it interacts with the SIMCom A7670E modem using **direct AT commands over HardwareSerial** and the modem's built-in HTTP client stack.
 
 ---
 
@@ -56,7 +57,7 @@ Open `firmware/src/config.h` in VS Code and update these two lines:
 
 ```cpp
 #define DEFAULT_STATION_ID    "STATION_002"              // ← Station ID you created
-#define DEFAULT_CUSTOM_TOKEN  "PASTE_TOKEN_HERE"         // ← Provisioning token (step 1)
+#define DEFAULT_DEVICE_TOKEN  "PASTE_TOKEN_HERE"         // ← Provisioning token (step 1)
 ```
 
 > **All other settings** (Firebase URL, APN, pins, thresholds) are pre-configured as defaults and do not need to change for standard deployments.
@@ -99,12 +100,12 @@ After flashing and powering the board (via USB or DIN-rail PSU):
 
 | Time | What Happens | LED |
 |------|-------------|-----|
-| 0–5s | Board initializes UART, watchdog, PZEM | Solid ON |
-| 5–30s | Modem powers up, connects to 4G network | Slow blink |
-| 30–60s | Exchanges provisioning token with Firebase for a permanent device token | Fast blink |
-| 60s+ | Begins uploading live PZEM readings every 30 seconds | Heartbeat |
+| 0–5s | Board initializes UART, watchdog, PZEM | Solid ON (White Pulse) |
+| 5–30s | Modem powers up, connects to 4G network | Fast Blue Blink (2 Hz) |
+| 30–60s | Exchanges provisioning token with Firebase for a permanent device token | Fast Blue Blink (4 Hz) |
+| 60s+ | Begins uploading live PZEM readings every 30 seconds | Green Heartbeat (1 Hz) |
 
-> **Token exchange is permanent** — after the first successful boot, `DEFAULT_CUSTOM_TOKEN` is no longer used. The board stores its permanent credentials in NVS (non-volatile flash storage).
+> **Token exchange is permanent** — after the first successful boot, `DEFAULT_DEVICE_TOKEN` is no longer used. The board stores its permanent credentials in NVS (non-volatile flash storage).
 
 ---
 
@@ -120,13 +121,7 @@ After flashing and powering the board (via USB or DIN-rail PSU):
 
 ## OTA (Over-the-Air) Updates
 
-The firmware supports OTA updates. To push a firmware update to deployed boards:
-
-1. Build the new firmware: `pio run --target buildfs` (or use the PlatformIO build button)
-2. Upload the `.bin` file to the Firebase Storage bucket at the path configured in `ota.h`
-3. Boards check for updates every **24 hours**. The next OTA check will detect the new version and automatically update.
-
-> OTA does not disrupt operation during the download phase — the board continues sending readings until the final reboot.
+The firmware supports OTA updates. Deployed boards check for newer versions, but this feature is marked **Coming Soon** in the current release.
 
 ---
 
@@ -135,7 +130,7 @@ The firmware supports OTA updates. To push a firmware update to deployed boards:
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
 | Board stuck at fast blink | Invalid provisioning token | Regenerate token on dashboard and re-flash |
-| No PZEM readings (all zeros or `--`) | Wiring error | Check GPIO 15/16 cross-connection, confirm PZEM powered |
+| No PZEM readings (all zeros or `--`) | Wiring error | Check GPIO 13/14 cross-connection, confirm PZEM powered |
 | No 4G connection | Inactive SIM or wrong APN | Verify SIM activated, check `CELLULAR_APN` in `config.h` |
 | Board not appearing on map | GPS no fix | Move GPS antenna to open sky; indoor fix can take 10+ min |
 | Upload fails in PlatformIO | Wrong USB driver | Install CP2104 or CH340 driver for your OS |

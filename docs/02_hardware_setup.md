@@ -67,10 +67,10 @@ Connect the PZEM-004T TTL serial header to the ESP32-S3 board:
 |--------------|---------------|----------------------|
 | 5V | 5V (board header) | Red |
 | GND | GND (board header) | Black |
-| TX | **GPIO 16** (Serial2 RX) | Yellow |
-| RX | **GPIO 15** (Serial2 TX) | Green |
+| TX | **GPIO 14** (Serial2 RX) | Yellow |
+| RX | **GPIO 13** (Serial2 TX) | Green |
 
-> ⚠️ **Important:** The PZEM TX connects to the ESP32 RX (GPIO 16), and PZEM RX connects to ESP32 TX (GPIO 15). Cross-connect TX→RX.
+> ⚠️ **Important:** The PZEM TX connects to the ESP32 RX (GPIO 14), and PZEM RX connects to ESP32 TX (GPIO 13). Cross-connect TX→RX.
 
 > ⚠️ **Voltage:** PZEM TTL serial operates at **3.3V logic levels** — safe for direct connection to the ESP32-S3 (also 3.3V). Do not connect to 5V-only microcontrollers without a level shifter.
 
@@ -86,15 +86,13 @@ Connect the PZEM-004T TTL serial header to the ESP32-S3 board:
   │  │                          │   │  │  A7670E 4G Board          │
   │  │ 5V ──────────────────────┼───┼─►│ 5V                        │
   │  │ GND ─────────────────────┼───┼─►│ GND                       │
-  │  │ TX ──────────────────────┼───┼─►│ GPIO16 (Serial2 RX)       │
-  │  │ RX ──────────────────────┼───┼──│ GPIO15 (Serial2 TX)       │
+  │  │ TX ──────────────────────┼───┼─►│ GPIO14 (Serial2 RX)       │
+  │  │ RX ──────────────────────┼───┼──│ GPIO13 (Serial2 TX)       │
   │  └──────────────────────────┘   │  │                           │
-  └─────────────────────────────────┘  │ GPIO18 ──► Modem TX       │
-                                        │ GPIO17 ──► Modem RX       │
-                                        │ GPIO4  ──► Modem PWRKEY   │
-                                        │ GPIO5  ──► Modem RESET    │
-                                        │ GPIO2  ──► Status LED     │
-                                        └──────────────────────────┘
+     └─────────────────────────────────┘  │ GPIO18 ──► Modem RXD      │
+                                        │ GPIO17 ──► Modem TXD      │
+                                        │ GPIO38 ──► Onboard NeoPixel│
+                                        │ 4G DIP switch ─► modem power│
 ```
 
 ---
@@ -141,15 +139,22 @@ Connect the PZEM-004T TTL serial header to the ESP32-S3 board:
 
 ## Section 6 — LED Status Indicator
 
-The onboard LED on GPIO 2 shows the current device state:
+The onboard WS2812B NeoPixel RGB LED on GPIO 38 shows the current device state:
 
 | LED Pattern | Meaning |
 |-------------|---------|
-| Solid ON | Booting / Initializing |
-| Slow Blink (1 Hz) | Connecting to 4G cellular network |
-| Fast Blink (4 Hz) | Authenticating with Firebase cloud |
-| Heartbeat (double-pulse, every 2s) | Normal operation — data uploading |
-| Rapid Flash | Error state — check serial monitor |
+| Slow White Pulse | Booting / Initializing |
+| Fast Blue Blink (2 Hz) | Connecting to 4G cellular network |
+| Fast Blue Blink (4 Hz) | Authenticating with Firebase cloud |
+| Green Heartbeat (1 Hz) | Normal operation — fully online |
+| Brief Cyan Flash | Uploading telemetry packet |
+| Slow Yellow Pulse | Searching for GNSS/GPS satellite fix |
+| Fast Orange Blink (4 Hz) | Current/Voltage reading crossed alert threshold |
+| Slow Red Blink (1 Hz) | Soft reset (AT+CRESET) in progress |
+| Dim Purple Pulse | Degraded Mode (modem hard-locked, offline data queueing) |
+| White Strobe | Critical alert notification |
+
+> **Note:** The board's I2C battery gauge uses GPIO 8 (SDA) and GPIO 9 (SCL), so the status LED must not share those pins.
 
 ---
 

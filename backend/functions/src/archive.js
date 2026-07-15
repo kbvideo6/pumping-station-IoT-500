@@ -12,6 +12,12 @@ exports.archiveReading = functions.region('europe-west1').database
       return null;
     }
 
+    // Only archive if it's an alert
+    if (!data.alert) {
+      console.log(`Station ${stationId} is in normal state. Skipping Firestore history archiving.`);
+      return null;
+    }
+
     try {
       const firestore = admin.firestore();
       
@@ -33,7 +39,7 @@ exports.archiveReading = functions.region('europe-west1').database
         .collection('history')
         .add(reading);
 
-      console.log(`Archived reading to history collection with ID: ${docRef.id} for station ${stationId}`);
+      console.log(`Archived alert reading to history collection with ID: ${docRef.id} for station ${stationId}`);
       return docRef.id;
     } catch (err) {
       console.error(`Failed to archive reading for station ${stationId}:`, err);

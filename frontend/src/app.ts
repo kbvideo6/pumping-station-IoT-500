@@ -8,9 +8,14 @@ import { UserManagement } from './user-mgmt';
 import { Utils, refreshIcons } from './utils';
 import { i18n } from './i18n';
 import { ThemeService } from './theme';
+import { collection, query, where, onSnapshot, type Unsubscribe } from 'firebase/firestore';
+import { firestore } from './firebase';
+import type { AlertDocumentWithId } from './types';
 
 export const App = {
   _activeView: null as { destroy?: () => void } | null,
+  _unackAlerts: [] as AlertDocumentWithId[],
+  _alertsUnsubscribe: null as Unsubscribe | null,
 
   init(): void {
     console.log('App init...');
@@ -25,8 +30,10 @@ export const App = {
     AuthService.init((user, errorType) => {
       if (user) {
         this.renderLayout();
+        this.setupGlobalAlertsListener();
         this.handleRoute();
       } else {
+        this.cleanupGlobalAlertsListener();
         if (errorType === 'ACCESS_DENIED') {
           Utils.showToast(i18n.t('access_denied'), 'error');
         }
@@ -258,6 +265,7 @@ export const App = {
     `;
 
     refreshIcons();
+    this.updateAlertsBadge();
 
     // Theme toggle trigger
     document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
@@ -315,6 +323,71 @@ export const App = {
         if (route) window.location.hash = route;
       });
     });
+  },
+
+  setupGlobalAlertsListener(): void {
+    if (this._alertsUnsubscribe) return;
+    try {
+      const q = query(collection(firestore, 'alerts'), where('acknowledged', '==', false));
+      this._alertsUnsubscribe = onSnapshot(q, (snapshot) => {
+        this._unackAlerts = [];
+        snapshot.forEach((d) => {
+          this._unackAlerts.push({ id: d.id, ...(d.data() as Omit<AlertDocumentWithId, 'id'>) });
+        });
+        this.updateAlertsBadge();
+        // If the active view is alerts, tell it to update from cached alerts
+        if (this._activeView === AlertsList) {
+          AlertsList.loadCachedAlerts();
+        }
+      }, (error) => {
+        console.error('Global alerts listener error:', error);
+      });
+    } catch (e) {
+      console.error('Failed to setup global alerts listener:', e);
+    }
+  },
+
+  cleanupGlobalAlertsListener(): void {
+    if (this._alertsUnsubscribe) {
+      this._alertsUnsubscribe();
+      this._alertsUnsubscribe = null;
+    }
+    this._unackAlerts = [];
+  },
+
+  updateAlertsBadge(): void {
+    const count = this._unackAlerts.length;
+    // Update sidebar nav item
+    const sidebarAlertNav = document.querySelector('.sidebar [data-route="#/alerts"]');
+    if (sidebarAlertNav) {
+      let badge = sidebarAlertNav.querySelector('.nav-badge');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'nav-badge';
+          sidebarAlertNav.appendChild(badge);
+        }
+        badge.textContent = String(count);
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+
+    // Update bottom nav item (mobile)
+    const bottomAlertNav = document.querySelector('.bottom-nav [data-route="#/alerts"]');
+    if (bottomAlertNav) {
+      let badge = bottomAlertNav.querySelector('.nav-badge');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'nav-badge';
+          bottomAlertNav.appendChild(badge);
+        }
+        badge.textContent = String(count);
+      } else if (badge) {
+        badge.remove();
+      }
+    }
   },
 
   handleRoute(): void {

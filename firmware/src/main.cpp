@@ -1,349 +1,368 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "nvs_flash.h"
-#include "esp_log.h"
-#include "esp_timer.h"
-#include "driver/i2c.h"
+// ============================================================
+//  main.cpp — Pumping Station IoT Firmware
+//  Waveshare ESP32-S3-A7670E-4G
+//  Version: 1.0.0
+// ============================================================
 
+#include "Arduino.h"
 #include "config.h"
+#include "watchdog.h"
+#include "nvs_storage.h"
 #include "led.h"
-#include "pzem_sensor.h"
 #include "modem.h"
-#include "battery_gauge.h"
+#include "gps.h"
 #include "firebase_auth.h"
-#include "firebase_data.h"
-#include "alerts.h"
-#include "ota.h"
+#include "firebase_rtdb.h"
+#include "sensor_pzem.h"
+#include "sensor_battery.h"
+#include "uploader.h"
 
-static const char* TAG = "Main";
-
-// Hardware instances
-StatusLED statusLed((gpio_num_t)STATUS_LED_PIN);
-PZEMSensor pzemSensor(UART_NUM_2, PZEM_UART_RX_PIN, PZEM_UART_TX_PIN, PZEM_MODBUS_ADDR);
-A7670Modem modem(UART_NUM_1, MODEM_PWRKEY_PIN, MODEM_RESET_PIN, MODEM_FLIGHT_PIN);
-Max17048BatteryGauge batteryGauge(BATTERY_GAUGE_I2C_ADDR);
-FirebaseAuth firebaseAuth(modem, FIREBASE_API_KEY, DEFAULT_CUSTOM_TOKEN, DEFAULT_STATION_ID);
-FirebaseData firebaseData(modem, firebaseAuth, FIREBASE_DB_URL, DEFAULT_STATION_ID);
-EdgeAlert edgeAlert(ALERT_DEBOUNCE_COUNT, ALERT_COOLDOWN_MS);
-OTAUpdater ota(modem, "1.0.0"); // Current version 1.0.0
-
-// Active configurations
-DeviceConfig deviceConfig = {
-  DEFAULT_HIGH_CURRENT_THRESHOLD,
-  DEFAULT_LOW_CURRENT_THRESHOLD,
-  DEFAULT_REPORT_INTERVAL_MS / 1000,
-  DEFAULT_CONFIG_POLL_MS / 1000,
-  "Default Station",
-  1.5,
-  1.0,
-  "", "", ""
+// ── State machine ─────────────────────────────────────────────
+enum class AppState : uint8_t {
+    BOOT,
+    CONNECTING_MODEM,
+    REGISTERING_NETWORK,
+    OPENING_DATA,
+    AUTH,
+    RUNNING,
+    RETRY_SOFT_RESET,
+    DEGRADED,
 };
 
-// Timing tracking
-uint64_t lastSensorReadMs = 0;
-uint64_t lastDataReportMs = 0;
-uint64_t lastConfigPollMs = 0;
-uint64_t bootTimeMs = 0;
-uint64_t lastModemWatchdogMs = 0;
-int modemFailCount = 0;
-bool modemRecoveryPending = false;
-uint64_t modemRecoveryReadyMs = 0;
+static AppState _state = AppState::BOOT;
 
-// Sensor reading accumulation buffers
-float accumCurrent     = 0;
-float accumVoltage     = 0;
-float accumPower       = 0;
-float accumFrequency   = 0;
-float accumPowerFactor = 0;
-float lastEnergy       = 0;
-int   sensorSampleCount = 0;
+// ── Runtime config (updated from RTDB) ───────────────────────
+static StationConfig _cfg = {
+    .highThreshold        = DEFAULT_HIGH_CURRENT_A,
+    .lowThreshold         = DEFAULT_LOW_CURRENT_A,
+    .highVoltageThreshold = DEFAULT_HIGH_VOLTAGE_V,
+    .lowVoltageThreshold  = DEFAULT_LOW_VOLTAGE_V,
+    .reportIntervalSec    = 30.0f,
+};
 
-// GPS tracking
-double gpsLat = 0.0;
-double gpsLng = 0.0;
-bool gpsHasFix = false;
-uint64_t lastGPSCheckMs = 0;
-const uint64_t GPS_CHECK_INTERVAL_MS = 60000;
+// ── Counters & timers ─────────────────────────────────────────
+static uint8_t  _retry_count       = 0;
+static uint8_t  _creset_count      = 0;
+static uint32_t _last_upload_ms    = 0;
+static uint32_t _last_config_ms    = 0;
+static uint32_t _last_keepalive_ms = 0;
+static uint32_t _degraded_retry_ms = 0;
 
-// Asynchronous LED pattern processing task
-void led_task(void *pvParameters) {
-  while (1) {
-    statusLed.update();
-    vTaskDelay(pdMS_TO_TICKS(10));
-  }
+static String   _station_id;
+static String   _device_token;
+
+// ── Forward declarations ──────────────────────────────────────
+static void transition(AppState s);
+static void run_retry_ladder(const char* reason);
+static void check_thresholds(const PzemReading& r);
+
+// ═════════════════════════════════════════════════════════════
+//  setup()
+// ═════════════════════════════════════════════════════════════
+void setup() {
+    Serial.begin(115200);
+    delay(500);
+
+    Serial.println("\n\n╔══════════════════════════════════════╗");
+    Serial.println(  "║  Pumping Station IoT  v" FW_VERSION "       ║");
+    Serial.println(  "╚══════════════════════════════════════╝\n");
+
+    // 1. Watchdog (must be first)
+    wdt_init(WDT_TIMEOUT_S);
+
+    // 2. Persistent storage
+    nvs_load();
+    _station_id   = nvs_get_station_id();
+    _device_token = nvs_get_device_token();
+
+    Serial.printf("[MAIN] Station: %s\n", _station_id.c_str());
+
+    // 3. Check boot fail counter
+    uint8_t bf = nvs_get_boot_fail();
+    Serial.printf("[MAIN] boot_fail_count = %u\n", bf);
+    if (bf >= DEGRADED_THRESHOLD) {
+        Serial.println("[MAIN] Entering DEGRADED MODE (too many boot failures)");
+        transition(AppState::DEGRADED);
+    }
+
+    // 4. Hardware peripherals
+    led_init();
+    led_set(LedState::BOOTING);
+
+    pzem_init();
+    battery_init();
+    queue_init();
+
+    // 5. Modem boot
+    led_set(LedState::CONNECTING);
+    transition(AppState::CONNECTING_MODEM);
 }
 
-bool bringUpModem() {
-  if (!modem.initializeModem()) {
-    return false;
-  }
-  if (!modem.connectNetwork(CELLULAR_APN)) {
-    return false;
-  }
-  modem.enableGPS(true);
-  return true;
-}
+// ═════════════════════════════════════════════════════════════
+//  loop()
+// ═════════════════════════════════════════════════════════════
+void loop() {
+    uint32_t now = millis();
 
-extern "C" void app_main(void) {
-  // 1. Initialize NVS (Required for credentials caching & WiFi/BT configuration in ESP-IDF)
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
+    // Always tick the LED and sensor regardless of state
+    led_tick();
+    pzem_tick();
+    wdt_reset();
 
-  ESP_LOGI(TAG, "============================================");
-  ESP_LOGI(TAG, "Booting Pumping Station IoT Controller v1.0.0...");
-  ESP_LOGI(TAG, "============================================");
-
-  // 2. Initialize I2C for MAX17048 Battery Gauge
-  i2c_config_t i2c_conf;
-  memset(&i2c_conf, 0, sizeof(i2c_conf));
-  i2c_conf.mode = I2C_MODE_MASTER;
-  i2c_conf.sda_io_num = GPIO_NUM_3;
-  i2c_conf.scl_io_num = GPIO_NUM_2;
-  i2c_conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_conf.master.clk_speed = 100000;
-  i2c_conf.clk_flags = 0;
-  i2c_param_config(I2C_NUM_0, &i2c_conf);
-  i2c_driver_install(I2C_NUM_0, i2c_conf.mode, 0, 0, 0);
-
-  if (batteryGauge.begin(I2C_NUM_0)) {
-    ESP_LOGI(TAG, "MAX17048 battery fuel gauge detected.");
-  } else {
-    ESP_LOGW(TAG, "MAX17048 battery fuel gauge not detected. Battery readings disabled.");
-  }
-
-  // 3. Initialize Status LED and start task
-  statusLed.begin();
-  statusLed.setPattern(LED_PATTERN_SOLID);
-  xTaskCreate(led_task, "led_task", 2048, NULL, 5, NULL);
-
-  // 4. Initialize PZEM Power Meter
-  pzemSensor.begin();
-
-  // 5. Initialize A7670E Modem
-  modem.begin();
-
-  // 6. Power on & Diagnose Modem
-  statusLed.setPattern(LED_PATTERN_SLOW_BLINK);
-  ESP_LOGI(TAG, "Powering on cellular modem...");
-  if (!modem.powerOn()) {
-    ESP_LOGE(TAG, "Modem power-on failed. Retrying...");
-    vTaskDelay(pdMS_TO_TICKS(5000));
-    if (!modem.powerOn()) {
-      ESP_LOGE(TAG, "Modem power-on failed again. System will reboot.");
-      vTaskDelay(pdMS_TO_TICKS(2000));
-      esp_restart();
-    }
-  }
-
-  if (!bringUpModem()) {
-    ESP_LOGW(TAG, "Cellular connection failed. Retrying...");
-    vTaskDelay(pdMS_TO_TICKS(5000));
-    if (!bringUpModem()) {
-      ESP_LOGE(TAG, "Network connection completely failed. System will reboot.");
-      vTaskDelay(pdMS_TO_TICKS(2000));
-      esp_restart();
-    }
-  }
-
-  modemRecoveryPending = false;
-  modemFailCount = 0;
-
-  // 7. Authenticate with Firebase
-  statusLed.setPattern(LED_PATTERN_FAST_BLINK);
-  ESP_LOGI(TAG, "Authenticating with Firebase...");
-  
-  bool authenticated = false;
-  for (int attempt = 0; attempt < 3; attempt++) {
-    if (firebaseAuth.begin()) {
-      authenticated = true;
-      break;
-    }
-    ESP_LOGW(TAG, "Firebase authentication failed (attempt %d/3).", attempt + 1);
-    vTaskDelay(pdMS_TO_TICKS(5000));
-  }
-
-  if (!authenticated) {
-    ESP_LOGE(TAG, "Firebase authentication failed after retries. Restarting board...");
-    vTaskDelay(pdMS_TO_TICKS(2000));
-    esp_restart();
-  }
-
-  // Set online status
-  if (firebaseData.updateOnlineStatus(true)) {
-    ESP_LOGI(TAG, "Device status set to ONLINE.");
-  }
-
-  // Fetch remote config parameters
-  if (firebaseData.getConfiguration(deviceConfig)) {
-    ESP_LOGI(TAG, "Config loaded. High: %.1fA, Low: %.1fA, Int: %ds",
-             deviceConfig.highThreshold, deviceConfig.lowThreshold, deviceConfig.reportIntervalSec);
-  }
-
-  // 8. Main loop timing initialization
-  bootTimeMs = esp_timer_get_time() / 1000;
-  lastSensorReadMs = bootTimeMs;
-  lastDataReportMs = bootTimeMs;
-  lastConfigPollMs = bootTimeMs;
-  lastGPSCheckMs = bootTimeMs;
-
-  statusLed.setPattern(LED_PATTERN_HEARTBEAT);
-  ESP_LOGI(TAG, "System ready. Entering main execution loop.");
-
-  while (1) {
-    uint64_t now = esp_timer_get_time() / 1000;
-
-    // 1. Read PZEM-004T sensor periodically (every 5 seconds)
-    if (now - lastSensorReadMs >= SENSOR_SAMPLING_INTERVAL_MS) {
-      PZEMReading r;
-      if (pzemSensor.read(r)) {
-        accumCurrent     += r.current;
-        accumVoltage     += r.voltage;
-        accumPower       += r.power;
-        accumFrequency   += r.frequency;
-        accumPowerFactor += r.powerFactor;
-        lastEnergy        = r.energy;
-        sensorSampleCount++;
-        lastSensorReadMs = now;
-
-        ESP_LOGI(TAG, "[PZEM] %.2fA  %.1fV  %.1fW  %.3fkWh  %.1fHz  PF:%.2f (Sample %d)",
-                      r.current, r.voltage, r.power, r.energy,
-                      r.frequency, r.powerFactor, sensorSampleCount);
-
-        edgeAlert.processReading(r.current, deviceConfig.highThreshold, deviceConfig.lowThreshold);
-      } else {
-        ESP_LOGW(TAG, "[PZEM] Read failed. Checking sensor communication.");
-        lastSensorReadMs = now;
-      }
-    }
-
-    // 2. Report average readings & alerts to Firebase DB
-    unsigned long reportIntervalMs = deviceConfig.reportIntervalSec * 1000;
-    if (now - lastDataReportMs >= reportIntervalMs && sensorSampleCount > 0) {
-      float avgCurrent     = accumCurrent     / sensorSampleCount;
-      float avgVoltage     = accumVoltage     / sensorSampleCount;
-      float avgPower       = accumPower       / sensorSampleCount;
-      float avgFrequency   = accumFrequency   / sensorSampleCount;
-      float avgPowerFactor = accumPowerFactor / sensorSampleCount;
-      float reportEnergy   = lastEnergy;
-
-      CurrentAlertType activeAlert = edgeAlert.processReading(
-        avgCurrent,
-        deviceConfig.highThreshold,
-        deviceConfig.lowThreshold
-      );
-
-      bool hasAlert = (activeAlert != ALERT_NONE);
-      const char* alertTypeStr = edgeAlert.getAlertTypeString();
-
-      int rssi = modem.getSignalQuality();
-      uint32_t uptimeSec = (esp_timer_get_time() / 1000 - bootTimeMs) / 1000;
-
-      ESP_LOGI(TAG, "[Reporter] Avg: %.2fA  %.1fV  %.1fW  %.3fkWh  PF:%.2f  (Alert: %s, RSSI: %d dBm)",
-                    avgCurrent, avgVoltage, avgPower, reportEnergy, avgPowerFactor, alertTypeStr, rssi);
-
-      if (hasAlert) {
-        statusLed.setPattern(LED_PATTERN_SOS);
-      } else {
-        statusLed.setPattern(LED_PATTERN_HEARTBEAT);
-      }
-
-      float battVolts   = -1.0;
-      float battPercent = -1.0;
-      batteryGauge.read(battVolts, battPercent);
-
-      firebaseData.putLiveData(
-        avgCurrent, avgVoltage, avgPower, reportEnergy,
-        avgFrequency, avgPowerFactor,
-        hasAlert, alertTypeStr,
-        rssi, uptimeSec, "1.0.0",
-        battVolts, battPercent
-      );
-
-      // Reset buffers
-      accumCurrent     = 0;
-      accumVoltage     = 0;
-      accumPower       = 0;
-      accumFrequency   = 0;
-      accumPowerFactor = 0;
-      sensorSampleCount = 0;
-      lastDataReportMs = now;
-    }
-
-    // 3. Poll remote configurations (every 5 minutes default)
-    unsigned long configPollMs = deviceConfig.configPollIntervalSec * 1000;
-    if (now - lastConfigPollMs >= configPollMs) {
-      DeviceConfig freshConfig;
-      if (firebaseData.getConfiguration(freshConfig)) {
-        deviceConfig = freshConfig;
-        ESP_LOGI(TAG, "[Config] Synced parameters. High: %.1fA, Low: %.1fA",
-                      deviceConfig.highThreshold, deviceConfig.lowThreshold);
-        
-        if (!deviceConfig.otaVersion.empty()) {
-          ota.checkAndPerformUpdate(deviceConfig.otaVersion, deviceConfig.otaUrl, deviceConfig.otaChecksum);
+    // ── DEGRADED MODE ─────────────────────────────────────────
+    if (_state == AppState::DEGRADED) {
+        // Try modem every DEGRADED_RETRY_MS
+        if (now - _degraded_retry_ms > DEGRADED_RETRY_MS) {
+            _degraded_retry_ms = now;
+            Serial.println("[MAIN] Degraded: testing modem...");
+            if (modem_is_alive()) {
+                Serial.println("[MAIN] Modem alive! Exiting degraded mode");
+                nvs_set_boot_fail(0);
+                transition(AppState::REGISTERING_NETWORK);
+            }
         }
-      }
-      lastConfigPollMs = now;
+        return;
     }
 
-    // 4. Check GPS location (every 1 minute until fix)
-    if (!gpsHasFix && (now - lastGPSCheckMs >= GPS_CHECK_INTERVAL_MS)) {
-      lastGPSCheckMs = now;
-      double lat = 0.0;
-      double lng = 0.0;
-      if (modem.getGPS(lat, lng)) {
-        gpsLat = lat;
-        gpsLng = lng;
-        gpsHasFix = true;
-        ESP_LOGI(TAG, "GPS Fix acquired! Lat: %.6f, Lng: %.6f", gpsLat, gpsLng);
-        firebaseData.updateOnlineStatus(true, gpsLat, gpsLng);
-      } else {
-        ESP_LOGI(TAG, "GPS checking: No fix yet.");
-      }
+    // ── CONNECTION STATE MACHINE ──────────────────────────────
+    switch (_state) {
+
+        case AppState::CONNECTING_MODEM:
+            if (modem_init()) {
+                transition(AppState::REGISTERING_NETWORK);
+            } else {
+                run_retry_ladder("modem_init failed");
+            }
+            break;
+
+        case AppState::REGISTERING_NETWORK:
+            led_set(LedState::CONNECTING);
+            if (modem_register_network()) {
+                transition(AppState::OPENING_DATA);
+            } else {
+                run_retry_ladder("network registration failed");
+            }
+            break;
+
+        case AppState::OPENING_DATA:
+            if (modem_open_data_session()) {
+                transition(AppState::AUTH);
+            } else {
+                run_retry_ladder("data session failed");
+            }
+            break;
+
+        case AppState::AUTH:
+            led_set(LedState::AUTH);
+            if (auth_begin(_device_token)) {
+                // Reset boot fail counter on successful auth
+                nvs_set_boot_fail(0);
+                // Start GPS in background
+                gps_init();
+                // Fetch initial config
+                rtdb_fetch_config(_station_id, auth_get_id_token(), _cfg);
+                _last_config_ms    = now;
+                _last_keepalive_ms = now;
+                led_set(LedState::ONLINE);
+                transition(AppState::RUNNING);
+                Serial.println("[MAIN] ═══ ONLINE ═══");
+            } else {
+                run_retry_ladder("auth failed");
+            }
+            break;
+
+        case AppState::RETRY_SOFT_RESET:
+            // Attempt AT+CRESET
+            led_set(LedState::ERROR_SOFT);
+            Serial.printf("[MAIN] AT+CRESET attempt %u/%u\n",
+                _creset_count, CRESET_MAX_ATTEMPTS);
+
+            if (modem_soft_reset()) {
+                _creset_count = 0;
+                _retry_count  = 0;
+                transition(AppState::REGISTERING_NETWORK);
+            } else {
+                _creset_count++;
+                if (_creset_count > CRESET_MAX_ATTEMPTS) {
+                    // AT+CRESET has failed — escalate to ESP32 reboot
+                    Serial.println("[MAIN] AT+CRESET exhausted — rebooting ESP32");
+                    nvs_increment_boot_fail();
+                    wdt_disable();
+                    delay(1000);
+                    esp_restart();
+                }
+            }
+            break;
+
+        case AppState::RUNNING:
+            // (handled below)
+            break;
+
+        default:
+            break;
     }
 
-    // 5. Modem AT watchdog and self-healing recovery (every 1 second)
-    if (now - lastModemWatchdogMs >= MODEM_WATCHDOG_INTERVAL_MS) {
-      lastModemWatchdogMs = now;
+    if (_state != AppState::RUNNING) return;
 
-      if (modemRecoveryPending) {
-        if (now >= modemRecoveryReadyMs) {
-          ESP_LOGI(TAG, "Modem recovery window elapsed. Re-initializing UART and modem...");
-          uart_driver_delete(UART_NUM_1);
-          modem.begin();
+    // ══════════════════════════════════════════════════════════
+    //  MAIN LOOP — state RUNNING
+    // ══════════════════════════════════════════════════════════
 
-          if (bringUpModem()) {
-            statusLed.setPattern(LED_PATTERN_HEARTBEAT);
-            firebaseData.updateOnlineStatus(true);
-            modemRecoveryPending = false;
-            modemFailCount = 0;
-          } else {
-            ESP_LOGE(TAG, "Modem still not ready after reset recovery.");
-            modemRecoveryReadyMs = now + MODEM_SOFT_RESET_RECOVERY_WAIT_MS;
-          }
+    // ── GPS background polling ────────────────────────────────
+    gps_tick();
+
+    // ── Keepalive check every 5 min ───────────────────────────
+    if (now - _last_keepalive_ms > KEEPALIVE_INTERVAL_MS) {
+        _last_keepalive_ms = now;
+        if (!modem_is_alive()) {
+            Serial.println("[MAIN] Keepalive: modem silent — running retry ladder");
+            run_retry_ladder("keepalive failed");
+            return;
         }
-      } else {
-        if (modem.ping()) {
-          modemFailCount = 0;
+        if (!modem_data_session_active()) {
+            Serial.println("[MAIN] Keepalive: data session dropped — reopening");
+            if (!modem_open_data_session()) {
+                run_retry_ladder("data session reopen failed");
+                return;
+            }
+        }
+    }
+
+    // ── Config refresh every 5 min ────────────────────────────
+    if (now - _last_config_ms > CONFIG_POLL_INTERVAL_MS) {
+        _last_config_ms = now;
+        if (!auth_ensure_valid()) {
+            run_retry_ladder("token refresh failed");
+            return;
+        }
+        rtdb_fetch_config(_station_id, auth_get_id_token(), _cfg);
+    }
+
+    // ── Upload every 30 s ─────────────────────────────────────
+    if (now - _last_upload_ms < UPLOAD_INTERVAL_MS) return;
+    _last_upload_ms = now;
+
+    // Collect averaged PZEM reading
+    PzemReading pzem  = pzem_get_average();
+    BatteryReading batt = battery_read();
+    GpsReading    gps  = gps_get();
+
+    if (!pzem.valid) {
+        Serial.println("[MAIN] PZEM reading invalid — skipping upload");
+        return;
+    }
+
+    // Threshold alert check
+    check_thresholds(pzem);
+
+    // Queue this reading
+    QueueEntry entry = { pzem, batt, gps, now };
+    queue_push(entry);
+
+    // Ensure token is fresh
+    if (!auth_ensure_valid()) {
+        Serial.println("[MAIN] Token invalid before upload — queuing");
+        run_retry_ladder("token ensure failed");
+        return;
+    }
+
+    // Upload queued entries (drain queue)
+    led_set(LedState::UPLOADING);
+    bool upload_ok = true;
+
+    while (!queue_is_empty() && upload_ok) {
+        QueueEntry e;
+        queue_pop(e);
+
+        int status = rtdb_upload(_station_id,
+                                 auth_get_id_token(),
+                                 e.pzem, e.batt, e.gps);
+
+        if (status == 200 || status == 204 || status == 201) {
+            Serial.printf("[MAIN] Upload OK (HTTP %d) — queue %u remaining\n",
+                status, queue_size());
+            _retry_count = 0;
         } else {
-          modemFailCount++;
-          ESP_LOGW(TAG, "Modem AT watchdog failure #%d / %d",
-                        modemFailCount, MODEM_FAILS_BEFORE_SOFT_RESET);
-
-          if (modemFailCount >= MODEM_FAILS_BEFORE_SOFT_RESET) {
-            modem.softReset();
-            modemRecoveryPending = true;
-            modemRecoveryReadyMs = esp_timer_get_time() / 1000;
-            modemFailCount = 0;
-          }
+            // Upload failed — push entry back (best-effort, may be lost if queue full)
+            queue_push(e);
+            Serial.printf("[MAIN] Upload failed (HTTP %d)\n", status);
+            upload_ok = false;
+            run_retry_ladder("upload failed");
         }
-      }
+
+        wdt_reset();
     }
 
-    vTaskDelay(pdMS_TO_TICKS(10)); // Yield to CPU
-  }
+    if (upload_ok) led_set(LedState::ONLINE);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  Helpers
+// ═════════════════════════════════════════════════════════════
+
+static void transition(AppState s) {
+    _state = s;
+}
+
+// Retry ladder:
+//   Level 0: retry same operation (handled by caller with retry_count)
+//   Level 1: AT+CRESET
+//   Level 2: esp_restart()
+static void run_retry_ladder(const char* reason) {
+    Serial.printf("[RETRY] Reason: %s  retry_count=%u\n", reason, _retry_count);
+
+    _retry_count++;
+
+    if (_retry_count <= RETRY_MAX_ATTEMPTS) {
+        // Level 0 — simple retry with backoff
+        uint32_t delay_ms = (_retry_count == 1) ? 0
+                          : (_retry_count == 2) ? 5000 : 15000;
+        if (delay_ms > 0) {
+            Serial.printf("[RETRY] Backoff %lu ms\n", delay_ms);
+            uint32_t t = millis();
+            while (millis() - t < delay_ms) {
+                led_tick();
+                wdt_reset();
+                delay(100);
+            }
+        }
+        // Re-enter connection from network registration
+        transition(AppState::REGISTERING_NETWORK);
+        return;
+    }
+
+    // Level 1 — AT+CRESET
+    _retry_count = 0;
+    _creset_count = (_creset_count < CRESET_MAX_ATTEMPTS + 1) ? _creset_count : 0;
+    transition(AppState::RETRY_SOFT_RESET);
+}
+
+static void check_thresholds(const PzemReading& r) {
+    bool alert = false;
+
+    if (r.current > _cfg.highThreshold) {
+        Serial.printf("[ALERT] HIGH CURRENT: %.3f A > %.1f A\n",
+            r.current, _cfg.highThreshold);
+        alert = true;
+    }
+    if (r.current < _cfg.lowThreshold && r.current > 0.01f) {
+        // Only alert if motor appears to be running (not zero current)
+        Serial.printf("[ALERT] LOW CURRENT: %.3f A < %.1f A\n",
+            r.current, _cfg.lowThreshold);
+        alert = true;
+    }
+    if (r.voltage > _cfg.highVoltageThreshold) {
+        Serial.printf("[ALERT] HIGH VOLTAGE: %.1f V > %.1f V\n",
+            r.voltage, _cfg.highVoltageThreshold);
+        alert = true;
+    }
+    if (r.voltage < _cfg.lowVoltageThreshold && r.voltage > 50.0f) {
+        Serial.printf("[ALERT] LOW VOLTAGE: %.1f V < %.1f V\n",
+            r.voltage, _cfg.lowVoltageThreshold);
+        alert = true;
+    }
+
+    if (alert) {
+        led_set(LedState::ALERT_FLASH);
+    }
 }

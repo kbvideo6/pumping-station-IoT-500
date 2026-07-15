@@ -36,50 +36,47 @@ export const AlertsList = {
         <div class="detail-header">
           <h1>${title}</h1>
         </div>
-        <div class="card filter-row" style="padding: var(--space-4);">
-          <div class="input-group">
+        <div class="card filter-row" style="padding: var(--space-4); display: flex; gap: var(--space-4); flex-wrap: wrap;">
+          <div class="input-group" style="flex: 1; min-width: 150px;">
             <label class="input-label">${i18n.t('status')}</label>
             <div class="custom-select">
               <div class="custom-select__trigger">
-                <span>${i18n.t('all')}</span>
+                <span>${this._filterAck === 'UNACK' ? i18n.t('unack') : this._filterAck === 'ACK' ? i18n.t('ack') : i18n.t('all')}</span>
                 <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
               </div>
               <div class="custom-select__options">
-                <div class="custom-select__option selected" data-value="ALL">${i18n.t('all')}</div>
-                <div class="custom-select__option" data-value="UNACK">${i18n.t('unack')}</div>
-                <div class="custom-select__option" data-value="ACK">${i18n.t('ack')}</div>
+                <div class="custom-select__option ${this._filterAck === 'ALL' ? 'selected' : ''}" data-value="ALL">${i18n.t('all')}</div>
+                <div class="custom-select__option ${this._filterAck === 'UNACK' ? 'selected' : ''}" data-value="UNACK">${i18n.t('unack')}</div>
+                <div class="custom-select__option ${this._filterAck === 'ACK' ? 'selected' : ''}" data-value="ACK">${i18n.t('ack')}</div>
               </div>
               <select id="alert-filter-ack" style="display: none;">
-                <option value="ALL">${i18n.t('all')}</option>
-                <option value="UNACK">${i18n.t('unack')}</option>
-                <option value="ACK">${i18n.t('ack')}</option>
+                <option value="ALL" ${this._filterAck === 'ALL' ? 'selected' : ''}>${i18n.t('all')}</option>
+                <option value="UNACK" ${this._filterAck === 'UNACK' ? 'selected' : ''}>${i18n.t('unack')}</option>
+                <option value="ACK" ${this._filterAck === 'ACK' ? 'selected' : ''}>${i18n.t('ack')}</option>
               </select>
             </div>
           </div>
-          <div class="input-group">
+          <div class="input-group" style="flex: 1; min-width: 150px;">
             <label class="input-label">${i18n.t('type')}</label>
             <div class="custom-select">
               <div class="custom-select__trigger">
-                <span>${i18n.t('all_types')}</span>
+                <span>${this._filterType === 'HIGH_CURRENT' ? i18n.t('alert_HIGH_CURRENT') : this._filterType === 'LOW_CURRENT' ? i18n.t('alert_LOW_CURRENT') : this._filterType === 'DEVICE_OFFLINE' ? i18n.t('offline') : i18n.t('all_types')}</span>
                 <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
               </div>
               <div class="custom-select__options">
-                <div class="custom-select__option selected" data-value="ALL">${i18n.t('all_types')}</div>
-                <div class="custom-select__option" data-value="HIGH_CURRENT">${i18n.t('alert_HIGH_CURRENT')}</div>
-                <div class="custom-select__option" data-value="LOW_CURRENT">${i18n.t('alert_LOW_CURRENT')}</div>
-                <div class="custom-select__option" data-value="DEVICE_OFFLINE">${i18n.t('offline')}</div>
+                <div class="custom-select__option ${this._filterType === 'ALL' ? 'selected' : ''}" data-value="ALL">${i18n.t('all_types')}</div>
+                <div class="custom-select__option ${this._filterType === 'HIGH_CURRENT' ? 'selected' : ''}" data-value="HIGH_CURRENT">${i18n.t('alert_HIGH_CURRENT')}</div>
+                <div class="custom-select__option ${this._filterType === 'LOW_CURRENT' ? 'selected' : ''}" data-value="LOW_CURRENT">${i18n.t('alert_LOW_CURRENT')}</div>
+                <div class="custom-select__option ${this._filterType === 'DEVICE_OFFLINE' ? 'selected' : ''}" data-value="DEVICE_OFFLINE">${i18n.t('offline')}</div>
               </div>
               <select id="alert-filter-type" style="display: none;">
-                <option value="ALL">${i18n.t('all_types')}</option>
-                <option value="HIGH_CURRENT">${i18n.t('alert_HIGH_CURRENT')}</option>
-                <option value="LOW_CURRENT">${i18n.t('alert_LOW_CURRENT')}</option>
-                <option value="DEVICE_OFFLINE">${i18n.t('offline')}</option>
+                <option value="ALL" ${this._filterType === 'ALL' ? 'selected' : ''}>${i18n.t('all_types')}</option>
+                <option value="HIGH_CURRENT" ${this._filterType === 'HIGH_CURRENT' ? 'selected' : ''}>${i18n.t('alert_HIGH_CURRENT')}</option>
+                <option value="LOW_CURRENT" ${this._filterType === 'LOW_CURRENT' ? 'selected' : ''}>${i18n.t('alert_LOW_CURRENT')}</option>
+                <option value="DEVICE_OFFLINE" ${this._filterType === 'DEVICE_OFFLINE' ? 'selected' : ''}>${i18n.t('offline')}</option>
               </select>
             </div>
           </div>
-          <button id="btn-load-alerts" class="btn btn-primary" style="align-self: flex-end;">
-            <i data-lucide="refresh-cw"></i> ${i18n.t('load')}
-          </button>
         </div>
         <div class="table-wrapper">
           <table class="table">
@@ -95,9 +92,7 @@ export const AlertsList = {
               </tr>
             </thead>
             <tbody id="alerts-table-body">
-              <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                ${i18n.t('alert_filter_prompt')}
-              </td></tr>
+              <tr><td colspan="7"><div class="loading-container"><div class="spinner"></div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -107,11 +102,19 @@ export const AlertsList = {
     refreshIcons();
     this._setupListeners();
     Utils.initCustomSelects();
+
+    // Automatically load alerts on render
+    void this.loadAlerts();
   },
 
   _setupListeners(): void {
-    document.getElementById('btn-load-alerts')?.addEventListener('click', () => {
+    // Watch hidden selects for change event dispatched by custom-select
+    document.getElementById('alert-filter-ack')?.addEventListener('change', () => {
       this._filterAck = (document.getElementById('alert-filter-ack') as HTMLSelectElement).value as AlertFilterAck;
+      void this.loadAlerts();
+    });
+
+    document.getElementById('alert-filter-type')?.addEventListener('change', () => {
       this._filterType = (document.getElementById('alert-filter-type') as HTMLSelectElement).value as AlertFilterType;
       void this.loadAlerts();
     });
@@ -126,9 +129,6 @@ export const AlertsList = {
   },
 
   async loadAlerts(): Promise<void> {
-    const tbody = document.getElementById('alerts-table-body') as HTMLElement;
-    tbody.innerHTML = `<tr><td colspan="7"><div class="loading-container"><div class="spinner"></div></div></td></tr>`;
-
     if (this._unsubscribe) {
       this._unsubscribe();
       this._unsubscribe = null;
@@ -160,7 +160,7 @@ export const AlertsList = {
           this._alerts.push({ id: d.id, ...(d.data() as Omit<AlertDocumentWithId, 'id'>) });
         });
 
-        // Sort by timestamp descending in memory to avoid missing index errors
+        // Sort by timestamp descending in memory
         this._alerts.sort((a, b) => {
           const tA = (a.timestamp as Timestamp)?.toMillis() || 0;
           const tB = (b.timestamp as Timestamp)?.toMillis() || 0;
@@ -170,17 +170,31 @@ export const AlertsList = {
         this._renderTable();
       }, (error) => {
         console.error('Error listening to alerts:', error);
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--status-alert); padding:40px;">${i18n.t('alerts_load_error')}</td></tr>`;
+        const tbody = document.getElementById('alerts-table-body');
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--status-alert); padding:40px;">${i18n.t('alerts_load_error')}</td></tr>`;
+        }
       });
 
     } catch (error) {
       console.error('Error setting up alerts listener:', error);
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--status-alert); padding:40px;">${i18n.t('alerts_load_error')}</td></tr>`;
+      const tbody = document.getElementById('alerts-table-body');
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--status-alert); padding:40px;">${i18n.t('alerts_load_error')}</td></tr>`;
+      }
+    }
+  },
+
+  loadCachedAlerts(): void {
+    // If we're showing UNACK alerts, we can trigger a reactive reload to reflect changes instantly
+    if (this._container && document.getElementById('alerts-table-body')) {
+      void this.loadAlerts();
     }
   },
 
   _renderTable(): void {
     const tbody = document.getElementById('alerts-table-body') as HTMLElement;
+    if (!tbody) return;
 
     if (this._alerts.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-secondary);">${i18n.t('no_alerts_found')}</td></tr>`;
@@ -230,7 +244,7 @@ export const AlertsList = {
         acknowledgedAt: serverTimestamp(),
       });
       Utils.showToast(i18n.t('alert_acknowledged'), 'success');
-      void this.loadAlerts();
+      // Table will reload automatically via the active query subscription!
     } catch (error) {
       console.error('Failed to acknowledge alert:', error);
       Utils.showToast(i18n.t('failed_acknowledge'), 'error');
