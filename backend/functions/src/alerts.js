@@ -32,6 +32,7 @@ exports.onLiveDataWrite = functions.region('europe-west1').database
         .where('stationId', '==', stationId)
         .where('type', '==', data.alertType)
         .where('timestamp', '>', oneMinuteAgo)
+        .orderBy('timestamp', 'desc')
         .limit(1)
         .get();
 

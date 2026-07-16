@@ -111,26 +111,24 @@ Open **http://localhost:5173** in your browser.
 
 ---
 
-## Step 6 — Run the Station Simulator (Optional)
+## Step 6 – Run the Station Simulator (Optional)
 
 In a **new terminal**:
 
 ```bash
-# Install python-dotenv for .env support (optional)
-pip install python-dotenv requests
-
-# Run the simulator
-python simulate_stations.py
+# Run the simulator (Requires Python 3)
+python simulate_station.py --station <YOUR_STATION_ID> --token <YOUR_CUSTOM_TOKEN> --apikey <YOUR_FIREBASE_API_KEY>
 ```
 
-This simulates 50 pumping stations sending real-time telemetry data to the local RTDB emulator. The dashboard will update in real-time.
+This simulates a single pumping station sending real-time telemetry data to the local RTDB emulator. The dashboard will update in real-time.
 
 ### Simulation Configuration
 
-Edit `.env` to change:
-- `NUM_STATIONS` — Number of stations (default: 50)
-- `FIREBASE_DB_URL` — Target database URL
-- `USE_AUTH` — Set to `true` for production database
+You can pass arguments to control its behavior:
+- `--station` – The Station ID (must be uppercase)
+- `--token` – The custom token generated from the dashboard
+- `--apikey` – The Web API Key of your Firebase project
+- `--dburl` – (Optional) Target database URL, defaults to the production DB. Use `http://localhost:9000` for the emulator.
 
 ---
 
@@ -174,7 +172,7 @@ pumping-station-iot/
 │       └── components.css     # Component styles
 ├── firmware/                  # ESP32 firmware (PlatformIO)
 ├── docs/                      # Project documentation
-├── simulate_stations.py       # Station data simulator
+├── simulate_station.py        # Station data simulator
 └── .env.example               # Simulator config template
 ```
 

@@ -58,8 +58,8 @@
 #define MODEM_RI_PIN 40  // Modem RI (ring indicator — input)
 
 // PZEM-004T v3.0  (UART2, external wiring)
-#define PZEM_TX_PIN 13 // ESP TX → PZEM RX
-#define PZEM_RX_PIN 14 // ESP RX ← PZEM TX
+#define PZEM_TX_PIN 14 // ESP TX → PZEM RX
+#define PZEM_RX_PIN 13 // ESP RX ← PZEM TX
 
 // MAX17048G Battery Gauge (I2C — primary bus)
 // These are the ESP32-S3 default Wire pins; change if I2C scan

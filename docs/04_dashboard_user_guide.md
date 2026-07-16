@@ -133,6 +133,8 @@ Navigate to **Benutzerverwaltung** (User Management).
 | Disable User | Toggle the active/inactive switch |
 | Delete User | Click trash icon |
 
+> **IMPORTANT:** Security upgrades have enabled Firebase Custom Claims. If a user is promoted to Admin, or a new Admin account is created, they must **Log Out and Log In** for their browser to fetch the new security token containing the Admin claim.
+
 ---
 
 ## Language Toggle
