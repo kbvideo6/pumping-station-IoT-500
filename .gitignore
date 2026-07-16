@@ -26,6 +26,14 @@ ui-debug.log
 graphify-out/
 
 # Python
+.venv/
 __pycache__/
 *.pyc
-.venv/
+
+# PlatformIO build directories
+firmware/.pio/
+.pio/
+
+# Archives & workspace artifacts
+*.zip
+*.tar.gz
