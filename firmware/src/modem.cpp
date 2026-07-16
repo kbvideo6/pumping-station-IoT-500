@@ -78,12 +78,19 @@ bool modem_init() {
     // RI is input only
     pinMode(MODEM_RI_PIN, INPUT);
 
-    Serial.println("[MDM] UART started — waiting for AT echo...");
+    Serial.println("[MDM] UART started — waiting for modem boot...");
 
-    // The modem auto-powers when the 4G DIP switch is ON.
-    // Wait for it to boot, then echo test.
-    delay(MODEM_BOOT_WAIT_MS);
-    wdt_reset();
+    // Wait for modem to power up, printing progress every second.
+    {
+        uint32_t waited = 0;
+        while (waited < MODEM_BOOT_WAIT_MS) {
+            uint32_t step = min((uint32_t)1000, MODEM_BOOT_WAIT_MS - waited);
+            delay(step);
+            waited += step;
+            wdt_reset();
+            Serial.printf("[MDM] Boot wait %lu/%u ms...\n", waited, MODEM_BOOT_WAIT_MS);
+        }
+    }
 
     for (int i = 0; i < MODEM_AT_ECHO_RETRIES; i++) {
         _flush_rx();
@@ -151,11 +158,21 @@ bool modem_register_network() {
     uint32_t deadline = millis() + 90000;
     while (millis() < deadline) {
         String r = _at_read("AT+CREG?", "OK", 3000);
-        // Registered: +CREG: 0,1 (home) or +CREG: 0,5 (roaming)
-        if (r.indexOf(",1") != -1 || r.indexOf(",5") != -1) {
-            Serial.println("[MDM] Network registered!");
+        // +CREG: 0,1 (home), 0,5 (roaming) -> full service
+        // +CREG: 0,6 (home SMS only), 0,7 (roaming SMS only) -> typical for LTE modules
+        if (r.indexOf(",1") != -1 || r.indexOf(",5") != -1 || 
+            r.indexOf(",6") != -1 || r.indexOf(",7") != -1) {
+            Serial.println("[MDM] Network registered (CS/SMS)!");
             return true;
         }
+
+        // Also check EPS (LTE Data) registration as a fallback
+        String r2 = _at_read("AT+CEREG?", "OK", 3000);
+        if (r2.indexOf(",1") != -1 || r2.indexOf(",5") != -1) {
+            Serial.println("[MDM] Network registered (LTE Data)!");
+            return true;
+        }
+
         wdt_reset();
         delay(3000);
     }
@@ -179,9 +196,9 @@ bool modem_open_data_session() {
             return false;
     }
 
-    // Confirm IP address assigned
-    String ip = _at_read("AT+CIFSR", "OK", 5000);
-    if (ip.indexOf("ERROR") != -1 || ip.length() < 10) {
+    // Confirm IP address assigned (AT+CIFSR is for 2G SIM800, use CGPADDR for LTE)
+    String ip = _at_read("AT+CGPADDR=1", "OK", 5000);
+    if (ip.indexOf("ERROR") != -1 || ip.indexOf("+CGPADDR:") == -1) {
         Serial.println("[MDM] No IP assigned");
         return false;
     }
@@ -261,17 +278,35 @@ static int _parse_status(const String& resp) {
 
 // Read body after a successful HTTPACTION
 static String _http_read_body() {
-    String r = _at_read("AT+HTTPREAD=0,4096", "OK", 10000);
-    // Response: +HTTPREAD: <len>\r\n<body>\r\nOK
+    // A7670E streams the data and finishes with +HTTPREAD: 0
+    String r = _at_read("AT+HTTPREAD=0,4096", "+HTTPREAD: 0", 15000);
+    
+    // Format: 
+    // OK
+    // +HTTPREAD: <len>
+    // <body>
+    // OK
+    // +HTTPREAD: 0
+    
     int idx = r.indexOf("+HTTPREAD:");
     if (idx == -1) return "";
+    
+    // Find the end of the "+HTTPREAD: <len>" line
     int nl = r.indexOf('\n', idx);
     if (nl == -1) return "";
-    String body = r.substring(nl + 1);
-    // Strip trailing OK and whitespace
+    
+    // Find where the "+HTTPREAD: 0" starts at the end
+    int end_idx = r.lastIndexOf("+HTTPREAD: 0");
+    if (end_idx == -1) end_idx = r.length();
+    
+    // Extract the body
+    String body = r.substring(nl + 1, end_idx);
+    
+    // Strip trailing OKs and whitespace
     int ok = body.lastIndexOf("OK");
     if (ok != -1) body = body.substring(0, ok);
     body.trim();
+    
     return body;
 }
 
@@ -321,13 +356,21 @@ int modem_http_patch(const String& url,
                      String&       resp_out) {
     // Firebase RTDB does not accept PATCH via the A7670E HTTP stack directly,
     // so we POST to the URL with x-http-method-override: PATCH.
-    // Firebase honors this override header.
-    String patch_url = url + "?x-http-method-override=PATCH";
-    String auth = "Authorization: Bearer " + id_token + "\r\n"
-                  "x-http-method-override: PATCH";
+    // Firebase honors this override query parameter.
+    // If the URL already contains '?' (e.g. ?auth=...), append with '&', else use '?'
+    String sep = (url.indexOf('?') != -1) ? "&" : "?";
+    String patch_url = url + sep + "x-http-method-override=PATCH";
+
+    // id_token is empty when using DB secret auth (already in URL)
+    // Only set USERDATA header if a token is explicitly provided
+    String auth_header = "";
+    if (id_token.length() > 0) {
+        auth_header = "Authorization: Bearer " + id_token + "\r\n"
+                      "x-http-method-override: PATCH";
+    }
     return modem_http_post(patch_url,
                            "application/json",
                            body,
-                           auth,
+                           auth_header,
                            resp_out);
 }

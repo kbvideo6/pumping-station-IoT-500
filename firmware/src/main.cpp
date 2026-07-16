@@ -42,6 +42,7 @@ static StationConfig _cfg = {
 
 // ── Counters & timers ─────────────────────────────────────────
 static uint8_t  _retry_count       = 0;
+static uint8_t  _auth_retry_count  = 0;  // separate counter — only for AUTH
 static uint8_t  _creset_count      = 0;
 static uint32_t _last_upload_ms    = 0;
 static uint32_t _last_config_ms    = 0;
@@ -60,12 +61,14 @@ static void check_thresholds(const PzemReading& r);
 //  setup()
 // ═════════════════════════════════════════════════════════════
 void setup() {
+    // Serial = UART0 → CH343 USB bridge → COM3.
+    // Always ready immediately — no CDC wait needed.
     Serial.begin(115200);
-    delay(500);
+    delay(100);
 
-    Serial.println("\n\n╔══════════════════════════════════════╗");
-    Serial.println(  "║  Pumping Station IoT  v" FW_VERSION "       ║");
-    Serial.println(  "╚══════════════════════════════════════╝\n");
+    Serial.println("\n\n=== Pumping Station IoT v" FW_VERSION " ===");
+    Serial.println("Build: " __DATE__ " " __TIME__);
+    Serial.println("=========================================\n");
 
     // 1. Watchdog (must be first)
     wdt_init(WDT_TIMEOUT_S);
@@ -95,6 +98,8 @@ void setup() {
 
     // 5. Modem boot
     led_set(LedState::CONNECTING);
+    // Clear boot_fail on a fresh boot so accumulation only counts real crashes
+    nvs_set_boot_fail(0);
     transition(AppState::CONNECTING_MODEM);
 }
 
@@ -155,8 +160,7 @@ void loop() {
         case AppState::AUTH:
             led_set(LedState::AUTH);
             if (auth_begin(_device_token)) {
-                // Reset boot fail counter on successful auth
-                nvs_set_boot_fail(0);
+                _auth_retry_count = 0;
                 // Start GPS in background
                 gps_init();
                 // Fetch initial config
@@ -167,7 +171,30 @@ void loop() {
                 transition(AppState::RUNNING);
                 Serial.println("[MAIN] ═══ ONLINE ═══");
             } else {
-                run_retry_ladder("auth failed");
+                _auth_retry_count++;
+                Serial.printf("[RETRY] Auth failed — attempt %u/%u\n",
+                    _auth_retry_count, RETRY_MAX_ATTEMPTS);
+
+                if (_auth_retry_count <= RETRY_MAX_ATTEMPTS) {
+                    // Auth failure: keep data session alive, just retry auth
+                    uint32_t delay_ms = (_auth_retry_count == 1) ? 2000
+                                      : (_auth_retry_count == 2) ? 5000 : 15000;
+                    Serial.printf("[RETRY] Auth backoff %lu ms (data session kept)\n", delay_ms);
+                    uint32_t t = millis();
+                    while (millis() - t < delay_ms) { led_tick(); wdt_reset(); delay(100); }
+                    // Stay in AUTH — do NOT re-open data session
+                    transition(AppState::AUTH);
+                } else {
+                    // Auth is truly broken — check if data session is still up
+                    _auth_retry_count = 0;
+                    if (!modem_data_session_active()) {
+                        Serial.println("[RETRY] Data session lost — reconnecting");
+                        run_retry_ladder("auth+data failed");
+                    } else {
+                        // Data is fine, modem may need reset
+                        run_retry_ladder("auth failed");
+                    }
+                }
             }
             break;
 
@@ -247,9 +274,9 @@ void loop() {
     BatteryReading batt = battery_read();
     GpsReading    gps  = gps_get();
 
+    // Always upload — rtdb_upload sends zeros + sensorAlert if PZEM is offline
     if (!pzem.valid) {
-        Serial.println("[MAIN] PZEM reading invalid — skipping upload");
-        return;
+        Serial.println("[MAIN] PZEM offline — uploading zeros with sensor alert");
     }
 
     // Threshold alert check

@@ -63,9 +63,10 @@ static bool _full_auth(const String& device_token) {
         return false;
     }
 
-    // Step 1: POST deviceToken to Cloud Function → get customToken
+    // Step 1: POST stationId and deviceToken to Cloud Function → get customToken
     Serial.println("[AUTH] Step 1: Getting customToken from Cloud Function...");
-    String body1 = "{\"deviceToken\":\"" + device_token + "\"}";
+    String station_id = nvs_get_station_id();
+    String body1 = "{\"stationId\":\"" + station_id + "\",\"deviceToken\":\"" + device_token + "\"}";
     String resp1;
     int    status1 = modem_http_post(
         FIREBASE_CF_TOKEN_URL,

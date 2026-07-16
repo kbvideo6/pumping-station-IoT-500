@@ -71,13 +71,24 @@ int rtdb_upload(const String&         station_id,
     // Build JSON payload matching frontend types.ts SensorData interface
     JsonDocument doc;
 
-    // Electrical readings
-    doc["voltage"]     = serialized(String(pzem.voltage,     1));
-    doc["current"]     = serialized(String(pzem.current,     3));
-    doc["power"]       = serialized(String(pzem.power,       1));
-    doc["energy"]      = serialized(String(pzem.energy,      3));
-    doc["frequency"]   = serialized(String(pzem.frequency,   1));
-    doc["powerFactor"] = serialized(String(pzem.powerFactor, 2));
+    bool sensor_offline = !pzem.valid;
+
+    // Electrical readings — send zeros with alert if PZEM not connected
+    doc["voltage"]     = serialized(String(sensor_offline ? 0.0f : pzem.voltage,     1));
+    doc["current"]     = serialized(String(sensor_offline ? 0.0f : pzem.current,     3));
+    doc["power"]       = serialized(String(sensor_offline ? 0.0f : pzem.power,       1));
+    doc["energy"]      = serialized(String(sensor_offline ? 0.0f : pzem.energy,      3));
+    doc["frequency"]   = serialized(String(sensor_offline ? 0.0f : pzem.frequency,   1));
+    doc["powerFactor"] = serialized(String(sensor_offline ? 0.0f : pzem.powerFactor, 2));
+
+    if (sensor_offline) {
+        doc["sensorAlert"]   = true;
+        doc["sensorOffline"] = true;
+        Serial.println("[RTDB] PZEM offline — uploading zero readings with alert");
+    } else {
+        doc["sensorAlert"]   = false;
+        doc["sensorOffline"] = false;
+    }
 
     // Battery
     doc["battVolts"]   = serialized(String(batt.voltage, 2));
@@ -90,21 +101,27 @@ int rtdb_upload(const String&         station_id,
     }
 
     // Status
-    doc["isOnline"]   = true;
-    doc["lastSeen"]   = rtdb_timestamp_now();
-    doc["rssi"]       = modem_get_rssi();
+    doc["isOnline"]        = true;
+    doc["lastSeen"]        = rtdb_timestamp_now();
+    doc["rssi"]            = modem_get_rssi();
     doc["firmwareVersion"] = FW_VERSION;
 
     String payload;
     serializeJson(doc, payload);
     Serial.println("[RTDB] Payload: " + payload);
 
-    // RTDB path: /stations/<station_id>/realtime
+    String upper_station_id = station_id;
+    upper_station_id.toUpperCase();
+
+    // Use Firebase DB Secret (short, ~40 chars) — JWT idToken (~700 chars) exceeds
+    // the A7670E AT+HTTPPARA URL limit of 512 chars.
+    // DB secret: Firebase Console → Project Settings → Service Accounts → Database Secrets
     String url = String(FIREBASE_RTDB_URL) +
-                 "/stations/" + station_id + "/realtime.json";
+                 "/stations/" + upper_station_id + "/live.json?auth=" + FIREBASE_DB_SECRET;
 
     String resp;
-    int    status = modem_http_patch(url, payload, id_token, resp);
+    // Note: url already has ?auth=, so modem_http_patch must append &x-http-method-override=PATCH
+    int status = modem_http_patch(url, payload, "", resp);
     Serial.printf("[RTDB] Upload status: %d\n", status);
     return status;
 }
@@ -114,12 +131,15 @@ bool rtdb_fetch_config(const String&  station_id,
                        const String&  id_token,
                        StationConfig& cfg) {
 
-    String url = String(FIREBASE_RTDB_URL) +
-                 "/stations/" + station_id + "/config.json";
+    String upper_station_id = station_id;
+    upper_station_id.toUpperCase();
 
-    String auth_hdr = "Authorization: Bearer " + id_token;
+    // Use Firebase DB Secret — short (~40 chars), fits within A7670E URL limit
+    String url = String(FIREBASE_RTDB_URL) +
+                 "/stations/" + upper_station_id + "/config.json?auth=" + FIREBASE_DB_SECRET;
+
     String resp;
-    int    status = modem_http_get(url, auth_hdr, resp);
+    int    status = modem_http_get(url, "", resp);
 
     if (status != 200 || resp.length() < 5) {
         Serial.printf("[RTDB] Config fetch failed — HTTP %d\n", status);

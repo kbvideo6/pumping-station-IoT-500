@@ -8,18 +8,32 @@
 // ============================================================
 
 // ── Station Identity (unique per board) ─────────────────────
-#define DEFAULT_STATION_ID "STATION_001" // Change per board
-#define DEFAULT_DEVICE_TOKEN ""          // Paste provisioning token here
+#define DEFAULT_STATION_ID "STATION_005" // Change per board
+#define DEFAULT_DEVICE_TOKEN                                                   \
+  "aad607ce04b28119c0f7c42e4b3db50cd12975777d47b486f75dc66423127d6b" // Paste
+                                                                     // provisioning
+                                                                     // token
+                                                                     // here
 
 // ── Firebase Project ─────────────────────────────────────────
 #ifndef FIREBASE_WEB_API_KEY
-#define FIREBASE_WEB_API_KEY "" // Should be injected via platformio.ini build_flags
+#define FIREBASE_WEB_API_KEY                                                   \
+  "" // Should be injected via platformio.ini build_flags
 #endif
 
 #define FIREBASE_RTDB_URL                                                      \
   "https://argus360-c0496-default-rtdb.europe-west1.firebasedatabase.app"
 #define FIREBASE_PROJECT_ID "argus360-c0496"
 #define FIREBASE_REGION "europe-west1"
+
+// Firebase Database Secret — used for RTDB auth instead of idToken.
+// The JWT idToken (~700 chars) exceeds the A7670E AT+HTTPPARA URL limit.
+// Get this from: Firebase Console → Project Settings → Service Accounts
+//                → Database Secrets → Add secret
+// It is a ~40-char string, e.g. "aBcDeFgH1234..."
+#define FIREBASE_DB_SECRET                                                     \
+  "fvSDZT8Pxz5XGUBHe1Jt2iMah0ZTMPHlkbL9zDbR" // <— PASTE YOUR DATABASE SECRET
+                                             // HERE
 
 // Derived Firebase URLs — do not edit
 #define FIREBASE_CF_TOKEN_URL                                                  \
@@ -38,8 +52,8 @@
 
 // ── GPIO Pin Map ─────────────────────────────────────────────
 // A7670E Modem (hardwired on Waveshare board — do not change)
-#define MODEM_TX_PIN 17  // ESP TX → Modem RX
-#define MODEM_RX_PIN 18  // ESP RX ← Modem TX
+#define MODEM_TX_PIN 18  // ESP TX → Modem RX
+#define MODEM_RX_PIN 17  // ESP RX ← Modem TX
 #define MODEM_DTR_PIN 45 // Modem DTR
 #define MODEM_RI_PIN 40  // Modem RI (ring indicator — input)
 
