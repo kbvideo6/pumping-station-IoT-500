@@ -74,37 +74,40 @@ int rtdb_upload(const String&         station_id,
     bool sensor_offline = !pzem.valid;
 
     // Electrical readings — send zeros with alert if PZEM not connected
-    doc["voltage"]     = serialized(String(sensor_offline ? 0.0f : pzem.voltage,     1));
-    doc["current"]     = serialized(String(sensor_offline ? 0.0f : pzem.current,     3));
-    doc["power"]       = serialized(String(sensor_offline ? 0.0f : pzem.power,       1));
-    doc["energy"]      = serialized(String(sensor_offline ? 0.0f : pzem.energy,      3));
-    doc["frequency"]   = serialized(String(sensor_offline ? 0.0f : pzem.frequency,   1));
-    doc["powerFactor"] = serialized(String(sensor_offline ? 0.0f : pzem.powerFactor, 2));
+    doc["live/voltage"]     = serialized(String(sensor_offline ? 0.0f : pzem.voltage,     1));
+    doc["live/current"]     = serialized(String(sensor_offline ? 0.0f : pzem.current,     3));
+    doc["live/power"]       = serialized(String(sensor_offline ? 0.0f : pzem.power,       1));
+    doc["live/energy"]      = serialized(String(sensor_offline ? 0.0f : pzem.energy,      3));
+    doc["live/frequency"]   = serialized(String(sensor_offline ? 0.0f : pzem.frequency,   1));
+    doc["live/powerFactor"] = serialized(String(sensor_offline ? 0.0f : pzem.powerFactor, 2));
 
     if (sensor_offline) {
-        doc["sensorAlert"]   = true;
-        doc["sensorOffline"] = true;
+        doc["live/sensorAlert"]   = true;
+        doc["live/sensorOffline"] = true;
         Serial.println("[RTDB] PZEM offline — uploading zero readings with alert");
     } else {
-        doc["sensorAlert"]   = false;
-        doc["sensorOffline"] = false;
+        doc["live/sensorAlert"]   = false;
+        doc["live/sensorOffline"] = false;
     }
 
     // Battery
-    doc["battVolts"]   = serialized(String(batt.voltage, 2));
-    doc["battPercent"] = serialized(String(batt.percent, 1));
+    doc["live/battVolts"]   = serialized(String(batt.voltage, 2));
+    doc["live/battPercent"] = serialized(String(batt.percent, 1));
 
     // Location
     if (gps.lat != 0.0f || gps.lng != 0.0f) {
-        doc["latitude"]  = serialized(String(gps.lat, 6));
-        doc["longitude"] = serialized(String(gps.lng, 6));
+        doc["live/latitude"]  = serialized(String(gps.lat, 6));
+        doc["live/longitude"] = serialized(String(gps.lng, 6));
     }
 
-    // Status
-    doc["isOnline"]        = true;
-    doc["lastSeen"]        = rtdb_timestamp_now();
-    doc["rssi"]            = modem_get_rssi();
-    doc["firmwareVersion"] = FW_VERSION;
+    // Status and metadata in live node
+    doc["live/rssi"]            = modem_get_rssi();
+    doc["live/firmwareVersion"] = FW_VERSION;
+
+    // Presence / Status node for Dashboard & Backend offline detection
+    doc["status/online"] = true;
+    JsonObject sv = doc["status/lastSeen"].to<JsonObject>();
+    sv[".sv"] = "timestamp";  // Use Firebase server timestamp (in ms)
 
     String payload;
     serializeJson(doc, payload);
@@ -115,9 +118,9 @@ int rtdb_upload(const String&         station_id,
 
     // Use Firebase DB Secret (short, ~40 chars) — JWT idToken (~700 chars) exceeds
     // the A7670E AT+HTTPPARA URL limit of 512 chars.
-    // DB secret: Firebase Console → Project Settings → Service Accounts → Database Secrets
+    // Notice we PATCH the root of the station, not /live.json, to allow multi-path updates.
     String url = String(FIREBASE_RTDB_URL) +
-                 "/stations/" + upper_station_id + "/live.json?auth=" + FIREBASE_DB_SECRET;
+                 "/stations/" + upper_station_id + ".json?auth=" + FIREBASE_DB_SECRET;
 
     String resp;
     // Note: url already has ?auth=, so modem_http_patch must append &x-http-method-override=PATCH

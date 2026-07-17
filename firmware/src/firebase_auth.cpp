@@ -28,6 +28,13 @@ static bool _refresh_id_token() {
 
     if (status != 200) {
         Serial.printf("[AUTH] Token refresh failed — HTTP %d\n", status);
+        // Firebase explicitly rejects the token — wipe it from NVS immediately.
+        // This avoids the useless fast-refresh loop on subsequent boots and goes
+        // straight to full auth (Cloud Function → signIn).
+        if (status == 400 && resp.indexOf("INVALID_REFRESH_TOKEN") != -1) {
+            Serial.println("[AUTH] INVALID_REFRESH_TOKEN — clearing stale token from NVS");
+            nvs_set_refresh_token("");
+        }
         return false;
     }
 

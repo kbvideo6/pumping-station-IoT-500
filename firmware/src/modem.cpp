@@ -257,8 +257,11 @@ static bool _http_init(const String& url,
 }
 
 // Terminate the HTTP stack cleanly after each request
+// IMPORTANT: A7670E needs a short settling delay after HTTPTERM before the
+// next HTTPINIT will succeed. Without this, HTTPINIT returns ERROR.
 static void _http_term() {
     _at_wait("AT+HTTPTERM", "OK", 3000);
+    delay(500);  // let modem HTTP stack fully reset
 }
 
 // Parse HTTP status code from +HTTPACTION response
