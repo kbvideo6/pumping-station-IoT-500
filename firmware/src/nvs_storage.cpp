@@ -9,16 +9,10 @@ void nvs_load() {
     prefs.begin(NS, false);
     Serial.println("[NVS] Loaded namespace: " + String(NS));
 
-    // Seed mandatory keys with compile-time defaults on first boot
-    // to prevent noisy [E] NOT_FOUND errors from Preferences library.
-    if (!prefs.isKey("station_id")) {
-        prefs.putString("station_id", DEFAULT_STATION_ID);
-        Serial.println("[NVS] First boot: seeded station_id = " DEFAULT_STATION_ID);
-    }
-    if (!prefs.isKey("device_token")) {
-        prefs.putString("device_token", DEFAULT_DEVICE_TOKEN);
-        Serial.println("[NVS] First boot: seeded device_token (from config.h)");
-    }
+    // Force overwrite with compile-time defaults to apply config.h changes
+    prefs.putString("station_id", DEFAULT_STATION_ID);
+    prefs.putString("device_token", DEFAULT_DEVICE_TOKEN);
+    Serial.println("[NVS] Overwrote station_id and device_token from config.h");
 }
 
 // ── Station ID ───────────────────────────────────────────────

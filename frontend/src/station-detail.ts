@@ -24,6 +24,12 @@ import {
 } from 'firebase/firestore';
 import { firestore } from './firebase';
 
+interface ChartCache {
+  labels: string[];
+  data: number[];
+  voltageData: number[];
+}
+const _globalChartCache: Record<string, ChartCache> = {};
 
 export const StationDetail = {
   _stationId: null as string | null,
@@ -37,9 +43,12 @@ export const StationDetail = {
 
   render(container: HTMLElement, stationId: string): void {
     this._stationId = stationId;
-    this._chartLabels = [];
-    this._chartData = [];
-    this._chartVoltageData = [];
+    if (!_globalChartCache[stationId]) {
+      _globalChartCache[stationId] = { labels: [], data: [], voltageData: [] };
+    }
+    this._chartLabels = _globalChartCache[stationId].labels;
+    this._chartData = _globalChartCache[stationId].data;
+    this._chartVoltageData = _globalChartCache[stationId].voltageData;
 
     container.innerHTML = `
       <div class="content-wrapper">
@@ -63,35 +72,35 @@ export const StationDetail = {
         <div class="detail-metrics">
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('current_amperage')}</div>
-            <div id="metric-current" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- A</div>
+            <div id="metric-current" class="detail-metric-value">-- A</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('voltage')}</div>
-            <div id="metric-voltage" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- V</div>
+            <div id="metric-voltage" class="detail-metric-value">-- V</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('power')}</div>
-            <div id="metric-power" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- W</div>
+            <div id="metric-power" class="detail-metric-value">-- W</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('energy_kwh')}</div>
-            <div id="metric-energy" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- kWh</div>
+            <div id="metric-energy" class="detail-metric-value">-- kWh</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('power_factor')}</div>
-            <div id="metric-pf" style="font-size: 2rem; font-weight: 700; font-family: monospace;">--</div>
+            <div id="metric-pf" class="detail-metric-value">--</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('frequency_hz')}</div>
-            <div id="metric-freq" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- Hz</div>
+            <div id="metric-freq" class="detail-metric-value">-- Hz</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('signal_strength')}</div>
-            <div id="metric-rssi" style="font-size: 2rem; font-weight: 700; font-family: monospace;">-- dBm</div>
+            <div id="metric-rssi" class="detail-metric-value">-- dBm</div>
           </div>
           <div class="card">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${i18n.t('battery')}</div>
-            <div id="metric-battery" style="font-size: 2rem; font-weight: 700; font-family: monospace;">--</div>
+            <div id="metric-battery" class="detail-metric-value">--</div>
           </div>
         </div>
 
@@ -161,12 +170,14 @@ export const StationDetail = {
         if (tabId === 'config-tab' && AuthService.isAdmin()) {
           const mount = document.getElementById('config-form-mount')!;
           if (!mount.hasChildNodes()) {
-            this._renderConfigForm(mount);
+            this._renderConfigForm(mount, this._lastKnownConfig);
           }
         }
       });
     });
   },
+
+  _lastKnownConfig: undefined as Partial<StationConfig> | undefined,
 
   _initChart(): void {
     const ctx = (document.getElementById('live-chart') as HTMLCanvasElement).getContext('2d')!;
@@ -266,6 +277,11 @@ export const StationDetail = {
 
   async _loadInitialChartData(): Promise<void> {
     if (!this._stationId) return;
+    if (this._chartLabels.length > 0) {
+      // Data is already cached, just update the chart
+      this._chart?.update('none');
+      return;
+    }
     try {
       const q = query(
         collection(firestore, 'history'),
@@ -309,6 +325,7 @@ export const StationDetail = {
       const live = data.live || {};
       const config = data.config || {};
       const status = data.status || {};
+      this._lastKnownConfig = config;
 
       const isOnline = status.online === true;
       const hasNeverConnected = !isOnline && (!live.firmwareVersion || live.firmwareVersion === "0.0.0");
@@ -334,10 +351,10 @@ export const StationDetail = {
       const pfEl = document.getElementById('metric-pf') as HTMLElement;
       if (showOfflinePlaceholder || live.powerFactor === undefined || live.powerFactor === null) {
         pfEl.innerText = '--';
-        pfEl.className = '';
+        pfEl.className = 'detail-metric-value';
       } else {
         pfEl.innerText = Utils.formatPowerFactor(live.powerFactor);
-        pfEl.className = Utils.powerFactorClass(live.powerFactor);
+        pfEl.className = 'detail-metric-value ' + Utils.powerFactorClass(live.powerFactor);
       }
 
       // -- Frequency
@@ -412,7 +429,7 @@ export const StationDetail = {
     });
   },
 
-  _renderConfigForm(container: HTMLElement, config?: StationConfig): void {
+  _renderConfigForm(container: HTMLElement, config?: Partial<StationConfig>): void {
     const cfg = config ?? {} as Partial<StationConfig>;
     container.innerHTML = `
       <div class="config-form" style="padding-top: var(--space-4);">
@@ -439,9 +456,25 @@ export const StationDetail = {
         </div>
         <div class="config-form__row">
           <div class="input-group">
+            <label class="input-label">${i18n.t('upper_voltage_threshold')}</label>
+            <input type="number" id="cfg-high-voltage" class="input input--numeric" step="1" value="${cfg.highVoltageThreshold ?? 250}">
+          </div>
+          <div class="input-group">
+            <label class="input-label">${i18n.t('lower_voltage_threshold')}</label>
+            <input type="number" id="cfg-low-voltage" class="input input--numeric" step="1" value="${cfg.lowVoltageThreshold ?? 200}">
+          </div>
+        </div>
+        <div class="config-form__row">
+          <div class="input-group">
             <label class="input-label">${i18n.t('report_interval')}</label>
             <input type="number" id="cfg-report-interval" class="input input--numeric" min="10" value="${cfg.reportIntervalSec ?? 30}">
           </div>
+          <div class="input-group">
+            <label class="input-label">${i18n.t('history_interval')}</label>
+            <input type="number" id="cfg-history-interval" class="input input--numeric" min="1" value="${cfg.historyIntervalMin ?? 15}">
+          </div>
+        </div>
+        <div class="config-form__row">
           <div class="input-group">
             <label class="input-label">${i18n.t('config_poll_interval')}</label>
             <input type="number" id="cfg-poll-interval" class="input input--numeric" min="60" value="${cfg.configPollIntervalSec ?? 300}">
@@ -469,7 +502,10 @@ export const StationDetail = {
       pumpPowerKW: parseFloat(getValue('cfg-power')),
       highThreshold: parseFloat(getValue('cfg-high')),
       lowThreshold: parseFloat(getValue('cfg-low')),
+      highVoltageThreshold: parseFloat(getValue('cfg-high-voltage')),
+      lowVoltageThreshold: parseFloat(getValue('cfg-low-voltage')),
       reportIntervalSec: parseInt(getValue('cfg-report-interval'), 10),
+      historyIntervalMin: parseInt(getValue('cfg-history-interval'), 10),
       configPollIntervalSec: parseInt(getValue('cfg-poll-interval'), 10),
     };
 

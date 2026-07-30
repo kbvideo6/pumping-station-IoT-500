@@ -23,8 +23,11 @@ export interface StationConfig {
   stationName?: string;
   highThreshold: number;
   lowThreshold: number;
-  reportIntervalSec: number;
-  configPollIntervalSec: number;
+  highVoltageThreshold?: number;
+  lowVoltageThreshold?: number;
+  reportIntervalSec?: number;
+  configPollIntervalSec?: number;
+  historyIntervalMin?: number;
   pumpPowerKW: number;
   calibration: number;
   lat?: number;

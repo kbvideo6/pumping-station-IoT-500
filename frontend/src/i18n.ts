@@ -101,8 +101,11 @@ const translations: Record<Lang, Record<string, string>> = {
     pump_power: 'Pumpenleistung (kW)',
     upper_threshold: 'Oberer Grenzwert (A)',
     lower_threshold: 'Unterer Grenzwert (A)',
-    report_interval: 'Sendeintervall (Sek.)',
-    config_poll_interval: 'Konfig-Abfrage (Sek.)',
+    upper_voltage_threshold: 'Oberer Spannungsgrenzwert (V)',
+    lower_voltage_threshold: 'Unterer Spannungsgrenzwert (V)',
+    report_interval: 'Sendeintervall (Sekunden)',
+    history_interval: 'Verlaufsintervall (Minuten)',
+    config_poll_interval: 'Konfig-Abfrage (Sekunden)',
     btn_save_config: 'Konfiguration Speichern',
     config_saved: 'Konfiguration gespeichert.',
     failed_save_config: 'Fehler beim Speichern.',
@@ -181,6 +184,7 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_HIGH_VOLTAGE: 'Überspannung',
     alert_LOW_VOLTAGE: 'Unterspannung',
     alert_DEVICE_OFFLINE: 'Verbindung verloren',
+    alert_SENSOR_OFFLINE: 'Sensor Offline',
     alert_UNKNOWN: 'Unbekannt',
 
     // Relative Uptime
@@ -289,8 +293,11 @@ const translations: Record<Lang, Record<string, string>> = {
     pump_power: 'Pump Power (kW)',
     upper_threshold: 'High Threshold (A)',
     lower_threshold: 'Low Threshold (A)',
-    report_interval: 'Reporting Interval (sec)',
-    config_poll_interval: 'Config Poll Interval (sec)',
+    upper_voltage_threshold: 'High Voltage Threshold (V)',
+    lower_voltage_threshold: 'Low Voltage Threshold (V)',
+    report_interval: 'Report Interval (Seconds)',
+    history_interval: 'History Interval (Minutes)',
+    config_poll_interval: 'Config Poll Interval (Seconds)',
     btn_save_config: 'Save Configuration',
     config_saved: 'Configuration saved.',
     failed_save_config: 'Failed to save configuration.',
@@ -369,6 +376,7 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_HIGH_VOLTAGE: 'Overvoltage',
     alert_LOW_VOLTAGE: 'Undervoltage',
     alert_DEVICE_OFFLINE: 'Connection Lost',
+    alert_SENSOR_OFFLINE: 'Sensor Offline',
     alert_UNKNOWN: 'Unknown',
 
     // Relative Uptime

@@ -1,43 +1,59 @@
 /* ── Cards ────────────────────────────────────── */
 .card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  opacity: 0.3;
 }
 
 .card:hover {
   border-color: var(--border-hover);
   box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  transform: translateY(-4px) scale(1.01);
+  background: var(--bg-elevated);
 }
 
 /* Card Status Modifier Gradients */
 .card--ok {
   border-color: var(--status-ok-border);
-  background: linear-gradient(145deg, var(--bg-surface) 70%, var(--status-ok-dim) 100%);
+  background: linear-gradient(145deg, var(--bg-surface) 60%, var(--status-ok-dim) 100%);
 }
+.card--ok:hover { box-shadow: var(--shadow-lg), var(--status-ok-glow); }
 
 .card--warn {
   border-color: var(--status-warn-border);
-  background: linear-gradient(145deg, var(--bg-surface) 70%, var(--status-warn-dim) 100%);
+  background: linear-gradient(145deg, var(--bg-surface) 60%, var(--status-warn-dim) 100%);
 }
+.card--warn:hover { box-shadow: var(--shadow-lg), var(--status-warn-glow); }
 
 .card--alert {
   border-color: var(--status-alert-border);
-  background: linear-gradient(145deg, var(--bg-surface) 70%, var(--status-alert-dim) 100%);
+  background: linear-gradient(145deg, var(--bg-surface) 60%, var(--status-alert-dim) 100%);
   box-shadow: var(--shadow-glow-alert);
 }
+.card--alert:hover { box-shadow: var(--shadow-lg), var(--status-alert-glow); }
 
 .card--offline {
   border-color: var(--status-offline-border);
-  background: linear-gradient(145deg, var(--bg-surface) 70%, var(--status-offline-dim) 100%);
-  opacity: 0.75;
+  background: linear-gradient(145deg, var(--bg-surface) 60%, var(--status-offline-dim) 100%);
+  opacity: 0.85;
 }
+.card--offline:hover { box-shadow: var(--shadow-lg), var(--status-offline-glow); }
 
 /* ── Buttons ──────────────────────────────────── */
 .btn {
@@ -62,12 +78,13 @@
   background: var(--gradient-accent);
   color: var(--text-inverse);
   box-shadow: var(--shadow-glow-accent);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  box-shadow: 0 0 24px rgba(6, 182, 212, 0.4);
-  transform: translateY(-1px);
+  opacity: 1;
+  box-shadow: 0 0 30px var(--accent-glow);
+  transform: translateY(-2px);
 }
 
 .btn-ghost {
@@ -158,13 +175,15 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
+  gap: var(--space-2);
+  padding: 4px var(--space-3);
   border-radius: var(--radius-full);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .badge--ok      { color: var(--status-ok);      background: var(--status-ok-dim);      border: 1px solid var(--status-ok-border); }

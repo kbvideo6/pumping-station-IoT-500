@@ -10,7 +10,7 @@ struct StationConfig {
     float lowThreshold;        // current A
     float highVoltageThreshold;// V
     float lowVoltageThreshold; // V
-    float reportIntervalSec;   // seconds (informational — we use compile-time constant)
+    float reportIntervalSec;   // seconds
 };
 
 // Upload one averaged reading to RTDB.

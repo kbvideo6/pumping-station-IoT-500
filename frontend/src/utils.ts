@@ -77,7 +77,13 @@ export const Utils = {
     const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
     const locale = i18n.currentLang === 'de' ? 'de-AT' : 'en-US';
     const timeZone = i18n.currentLang === 'de' ? 'Europe/Vienna' : undefined;
-    return date.toLocaleString(locale, { timeZone });
+    return date.toLocaleString(locale, { 
+      timeZone,
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   },
 
   formatRelativeTime(timestamp: number | null | undefined): string {

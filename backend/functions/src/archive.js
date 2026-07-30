@@ -12,9 +12,41 @@ exports.archiveReading = functions.region('europe-west1').database
       return null;
     }
 
-    // Only archive if it's an alert
-    if (!data.alert) {
-      console.log(`Station ${stationId} is in normal state. Skipping Firestore history archiving.`);
+    const previousData = change.before.exists() ? change.before.val() : {};
+    const isNewAlert = Boolean(data.alert) && (!previousData.alert || previousData.alertType !== data.alertType);
+
+    let shouldArchive = false;
+    let reason = '';
+
+    if (isNewAlert) {
+      // Archive immediately when a new alert state occurs or alert type changes
+      shouldArchive = true;
+      reason = 'alert';
+    } else {
+      // Check for periodic archiving
+      const db = admin.database();
+      const [configSnap, statusSnap] = await Promise.all([
+        db.ref(`/stations/${stationId}/config`).once('value'),
+        db.ref(`/stations/${stationId}/status`).once('value')
+      ]);
+      
+      const config = configSnap.val() || {};
+      const status = statusSnap.val() || {};
+      
+      const intervalMin = config.historyIntervalMin || 15;
+      const intervalMs = intervalMin * 60 * 1000;
+      const now = Date.now();
+      const lastHistory = status.lastHistory || 0;
+      
+      if (now - lastHistory >= intervalMs) {
+        shouldArchive = true;
+        reason = 'periodic';
+        // Update lastHistory immediately to prevent race conditions
+        await db.ref(`/stations/${stationId}/status/lastHistory`).set(admin.database.ServerValue.TIMESTAMP);
+      }
+    }
+
+    if (!shouldArchive) {
       return null;
     }
 
@@ -39,7 +71,7 @@ exports.archiveReading = functions.region('europe-west1').database
         .collection('history')
         .add(reading);
 
-      console.log(`Archived alert reading to history collection with ID: ${docRef.id} for station ${stationId}`);
+      console.log(`Archived ${reason} reading to history collection with ID: ${docRef.id} for station ${stationId}`);
       return docRef.id;
     } catch (err) {
       console.error(`Failed to archive reading for station ${stationId}:`, err);

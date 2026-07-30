@@ -26,18 +26,17 @@ exports.onLiveDataWrite = functions.region('europe-west1').database
       const configSnap = await db.ref(`/stations/${stationId}/config`).once('value');
       const config = configSnap.val() || {};
 
-      // 2. Alert Cooldown Check (1 minute = 60,000 ms)
-      const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
-      const recentAlertsSnap = await firestore.collection('alerts')
+      // 2. Alert Cooldown Check (Stateful deduplication)
+      // Check if there is already an UNACKNOWLEDGED alert of this type for this station
+      const openAlertsSnap = await firestore.collection('alerts')
         .where('stationId', '==', stationId)
         .where('type', '==', data.alertType)
-        .where('timestamp', '>', oneMinuteAgo)
-        .orderBy('timestamp', 'desc')
+        .where('acknowledged', '==', false)
         .limit(1)
         .get();
 
-      if (!recentAlertsSnap.empty) {
-        console.log(`Alert of type ${data.alertType} for station ${stationId} is in cooldown. Skipping notification.`);
+      if (!openAlertsSnap.empty) {
+        console.log(`An open alert of type ${data.alertType} already exists for station ${stationId}. Skipping.`);
         return null;
       }
 

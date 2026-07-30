@@ -8,9 +8,9 @@
 // ============================================================
 
 // ── Station Identity (unique per board) ─────────────────────
-#define DEFAULT_STATION_ID "STATION_005" // Change per board
+#define DEFAULT_STATION_ID "STATION_006" // Change per board
 #define DEFAULT_DEVICE_TOKEN                                                   \
-  "aad607ce04b28119c0f7c42e4b3db50cd12975777d47b486f75dc66423127d6b" // Paste
+  "28a10945089031ea0259b246e9c119cdb457112599d0034493d8ffd2927e210b" // Paste
                                                                      // provisioning
                                                                      // token
                                                                      // here
@@ -64,16 +64,16 @@
 // MAX17048G Battery Gauge (I2C — primary bus)
 // These are the ESP32-S3 default Wire pins; change if I2C scan
 // finds no 0x36 device and you need to try the secondary bus.
-#define I2C_SDA_PIN 8
-#define I2C_SCL_PIN 9
+#define I2C_SDA_PIN -1
+#define I2C_SCL_PIN -1
 
 // WS2812B onboard NeoPixel
 #define LED_PIN 38
 #define LED_COUNT 1
 
 // ── Timing ───────────────────────────────────────────────────
-#define PZEM_SAMPLE_INTERVAL_MS 5000UL   // Sample PZEM every 5 s
-#define UPLOAD_INTERVAL_MS 30000UL       // Upload every 30 s
+#define PZEM_SAMPLE_INTERVAL_MS 1000UL   // Sample PZEM every 1 s
+#define UPLOAD_INTERVAL_MS 2000UL        // Upload every 1 s
 #define CONFIG_POLL_INTERVAL_MS 300000UL // Re-fetch RTDB config every 5 min
 #define KEEPALIVE_INTERVAL_MS 300000UL   // AT echo + PDP check every 5 min
 #define TOKEN_REFRESH_HEADROOM_S 300     // Refresh idToken 5 min before expiry

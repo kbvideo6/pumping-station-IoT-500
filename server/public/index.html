@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Argus360</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <link rel="icon" type="image/png" href="/logo.png">
+  
+  <style>
+    :root, [data-theme="light"] {
+      --loader-bg: #f8fafc;
+      --loader-text: #0f172a;
+      --loader-accent: #0891b2;
+      --loader-glow: rgba(8, 145, 178, 0.25);
+    }
+    [data-theme="dark"] {
+      --loader-bg: #000000;
+      --loader-text: #ffffff;
+      --loader-accent: #00f2fe;
+      --loader-glow: rgba(0, 242, 254, 0.35);
+    }
+    #initial-loader {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--loader-bg);
+      color: var(--loader-text);
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.2s ease;
+    }
+    .logo-loader-container {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .logo-loader-container::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: var(--loader-accent);
+      border-right-color: var(--loader-accent);
+      animation: spinRing 1s linear infinite;
+      box-shadow: 0 0 15px var(--loader-glow);
+    }
+    .logo-loader-img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      animation: pulseLogo 2s ease-in-out infinite;
+    }
+    @keyframes spinRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes pulseLogo {
+      0%, 100% { transform: scale(0.94); opacity: 0.85; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+  </style>
+  
+  
+  <script>
+    (function() {
+      var saved = localStorage.getItem('theme');
+      var theme = (saved === 'dark' || saved === 'light') ? saved : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <script type="module" crossorigin src="/assets/index-BlkU2Qln.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CgQ3ZW3w.css">
+</head>
+<body>
+  <div id="app">
+    <!-- App will mount here. Show a basic loading state initially -->
+    <div id="initial-loader">
+      <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+        <div class="logo-loader-container">
+          <img src="/logo.png" alt="Logo" class="logo-loader-img">
+        </div>
+        <div style="font-size: 1.25rem; font-weight: 600; letter-spacing: 0.05em; color: var(--loader-accent);">Argus360</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+</body>
+</html>

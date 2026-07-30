@@ -55,7 +55,7 @@ static String   _device_token;
 // ── Forward declarations ──────────────────────────────────────
 static void transition(AppState s);
 static void run_retry_ladder(const char* reason);
-static void check_thresholds(const PzemReading& r);
+static void check_thresholds(PzemReading& r);
 
 // ═════════════════════════════════════════════════════════════
 //  setup()
@@ -265,9 +265,11 @@ void loop() {
         rtdb_fetch_config(_station_id, auth_get_id_token(), _cfg);
     }
 
-    // ── Upload every 30 s ─────────────────────────────────────
-    if (now - _last_upload_ms < UPLOAD_INTERVAL_MS) return;
+    // ── Upload based on configured interval ───────────────────
+    if (now - _last_upload_ms < (uint32_t)(_cfg.reportIntervalSec * 1000)) return;
     _last_upload_ms = now;
+
+    Serial.println("\n[MAIN] ─── Telemetry Cycle Start ───");
 
     // Collect averaged PZEM reading
     PzemReading pzem  = pzem_get_average();
@@ -319,6 +321,8 @@ void loop() {
 
         wdt_reset();
     }
+    
+    Serial.println("[MAIN] ─── Telemetry Cycle End ───\n");
 
     if (upload_ok) led_set(LedState::ONLINE);
 }
@@ -364,30 +368,32 @@ static void run_retry_ladder(const char* reason) {
     transition(AppState::RETRY_SOFT_RESET);
 }
 
-static void check_thresholds(const PzemReading& r) {
+static void check_thresholds(PzemReading& r) {
     bool alert = false;
+    memset(r.alertType, 0, sizeof(r.alertType));
 
     if (r.current > _cfg.highThreshold) {
-        Serial.printf("[ALERT] HIGH CURRENT: %.3f A > %.1f A\n",
-            r.current, _cfg.highThreshold);
+        Serial.printf("[ALERT] HIGH CURRENT: %.3f A > %.1f A\n", r.current, _cfg.highThreshold);
         alert = true;
+        strncpy(r.alertType, "HIGH_CURRENT", sizeof(r.alertType) - 1);
     }
-    if (r.current < _cfg.lowThreshold && r.current > 0.01f) {
-        // Only alert if motor appears to be running (not zero current)
-        Serial.printf("[ALERT] LOW CURRENT: %.3f A < %.1f A\n",
-            r.current, _cfg.lowThreshold);
+    else if (r.current < _cfg.lowThreshold && r.current > 0.01f) {
+        Serial.printf("[ALERT] LOW CURRENT: %.3f A < %.1f A\n", r.current, _cfg.lowThreshold);
         alert = true;
+        strncpy(r.alertType, "LOW_CURRENT", sizeof(r.alertType) - 1);
     }
-    if (r.voltage > _cfg.highVoltageThreshold) {
-        Serial.printf("[ALERT] HIGH VOLTAGE: %.1f V > %.1f V\n",
-            r.voltage, _cfg.highVoltageThreshold);
+    else if (r.voltage > _cfg.highVoltageThreshold) {
+        Serial.printf("[ALERT] HIGH VOLTAGE: %.1f V > %.1f V\n", r.voltage, _cfg.highVoltageThreshold);
         alert = true;
+        strncpy(r.alertType, "HIGH_VOLTAGE", sizeof(r.alertType) - 1);
     }
-    if (r.voltage < _cfg.lowVoltageThreshold && r.voltage > 50.0f) {
-        Serial.printf("[ALERT] LOW VOLTAGE: %.1f V < %.1f V\n",
-            r.voltage, _cfg.lowVoltageThreshold);
+    else if (r.voltage < _cfg.lowVoltageThreshold && r.voltage > 50.0f) {
+        Serial.printf("[ALERT] LOW VOLTAGE: %.1f V < %.1f V\n", r.voltage, _cfg.lowVoltageThreshold);
         alert = true;
+        strncpy(r.alertType, "LOW_VOLTAGE", sizeof(r.alertType) - 1);
     }
+
+    r.alert = alert;
 
     if (alert) {
         led_set(LedState::ALERT_FLASH);

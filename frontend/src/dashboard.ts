@@ -182,22 +182,38 @@ export const Dashboard = {
                 ${statusBadge}
               </div>
               <div class="station-card__value">${online ? current.toFixed(2) + ' A' : '-- A'}</div>
-              ${online && liveData.voltage !== undefined ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; font-family: monospace;">${liveData.voltage.toFixed(1)} V &nbsp;·&nbsp; ${liveData.power !== undefined ? (liveData.power >= 1000 ? (liveData.power/1000).toFixed(2)+' kW' : liveData.power.toFixed(0)+' W') : '-- W'}</div>` : ''}
-              <div class="current-bar">
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); padding: 0 var(--space-1);">
+                ${online && liveData.voltage !== undefined 
+                  ? `<div style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: var(--text-secondary); font-family: monospace;">
+                       <i data-lucide="zap" style="width: 14px; height: 14px; color: var(--accent-500);"></i> 
+                       ${liveData.voltage.toFixed(1)} V
+                     </div>` 
+                  : `<div></div>`}
+                ${online && liveData.power !== undefined 
+                  ? `<div style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: var(--text-secondary); font-family: monospace;">
+                       <i data-lucide="activity" style="width: 14px; height: 14px; color: var(--status-warn);"></i>
+                       ${liveData.power >= 1000 ? (liveData.power/1000).toFixed(2)+' kW' : liveData.power.toFixed(0)+' W'}
+                     </div>` 
+                  : `<div></div>`}
+              </div>
+
+              <div class="current-bar" style="margin-bottom: var(--space-4);">
                 <div class="current-bar__fill ${fillModifier}" style="width: ${online ? percentFill : 0}%"></div>
               </div>
+              
               <div class="station-card__footer">
-                <div class="station-card__footer-item">
+                <div class="station-card__footer-item" title="Signal Strength">
                   <i data-lucide="signal" style="width: 14px; height: 14px;"></i>
                   <span>${online ? (liveData.rssi ?? '--') + ' dBm' : '--'}</span>
                 </div>
                 ${online && liveData.battPercent !== undefined ? `
-                <div class="station-card__footer-item" title="Batteriespannung: ${liveData.battVolts ? liveData.battVolts.toFixed(2) + ' V' : '--'}">
-                  <i data-lucide="battery" style="width: 14px; height: 14px;"></i>
+                <div class="station-card__footer-item" title="Battery: ${liveData.battVolts ? liveData.battVolts.toFixed(2) + ' V' : '--'}">
+                  <i data-lucide="battery-medium" style="width: 14px; height: 14px;"></i>
                   <span>${liveData.battPercent.toFixed(0)}%</span>
                 </div>
                 ` : ''}
-                <div class="station-card__footer-item">
+                <div class="station-card__footer-item" title="Last Seen">
                   <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
                   <span>${Utils.formatRelativeTime(liveData.timestamp)}</span>
                 </div>

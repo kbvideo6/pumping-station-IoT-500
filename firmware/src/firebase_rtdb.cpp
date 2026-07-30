@@ -82,12 +82,16 @@ int rtdb_upload(const String&         station_id,
     doc["live/powerFactor"] = serialized(String(sensor_offline ? 0.0f : pzem.powerFactor, 2));
 
     if (sensor_offline) {
-        doc["live/sensorAlert"]   = true;
-        doc["live/sensorOffline"] = true;
+        doc["live/alert"] = true;
+        doc["live/alertType"] = "SENSOR_OFFLINE";
         Serial.println("[RTDB] PZEM offline — uploading zero readings with alert");
     } else {
-        doc["live/sensorAlert"]   = false;
-        doc["live/sensorOffline"] = false;
+        doc["live/alert"] = pzem.alert;
+        if (pzem.alert && pzem.alertType[0] != '\0') {
+            doc["live/alertType"] = pzem.alertType;
+        } else {
+            doc["live/alertType"] = nullptr;
+        }
     }
 
     // Battery

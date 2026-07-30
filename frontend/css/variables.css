@@ -1,77 +1,88 @@
 :root, [data-theme="light"] {
-  /* ── Backgrounds ─────────────────────────────── */
-  --bg-base:        #f8fafc;   /* Slate 50 page body background */
-  --bg-surface:     #ffffff;   /* Pure white cards, header, sidebar */
-  --bg-elevated:    #f1f5f9;   /* Hover, modals, dropdowns */
-  --bg-input:       #ffffff;   /* Input fields */
-  --bg-overlay:     rgba(15, 23, 42, 0.4); /* Modal overlay backdrop */
-
+  /* ── Backgrounds & Glass ─────────────────────── */
+  /* We use a very subtle mesh or radial gradient on the body.
+     Cards will be translucent white. */
+  --bg-page:        #f0f4f8;   /* Light cool gray for the body */
+  --bg-surface:     rgba(255, 255, 255, 0.75); /* Glass card */
+  --bg-elevated:    rgba(255, 255, 255, 0.95); /* Hover/Active glass */
+  --bg-input:       rgba(255, 255, 255, 0.6);
+  --bg-overlay:     rgba(15, 23, 42, 0.5); /* Modal overlay */
+  
+  /* Glassmorphism filters */
+  --glass-blur:     blur(16px);
+  --glass-border:   rgba(255, 255, 255, 0.5);
+  
   /* ── Borders ─────────────────────────────────── */
-  --border-subtle:  #e2e8f0;   /* Slate 200 */
-  --border-default: #cbd5e1;   /* Slate 300 */
-  --border-hover:   #94a3b8;   /* Slate 400 */
-  --border-focus:   #2563eb;   /* Blue 600 */
+  --border-subtle:  rgba(255, 255, 255, 0.4);
+  --border-default: rgba(226, 232, 240, 0.8);
+  --border-hover:   rgba(148, 163, 184, 0.6);
+  --border-focus:   #3b82f6;
 
-  /* ── Primary Accent — Royal/Dark Blue ──────── */
-  --accent-900:     #eff6ff;   /* Blue 50 */
-  --accent-700:     #1e40af;   /* Blue 800 */
-  --accent-500:     #2563eb;   /* Blue 600 */
-  --accent-400:     #3b82f6;   /* Blue 500 */
-  --accent-300:     #93c5fd;   /* Blue 300 */
-  --accent-glow:    rgba(37, 99, 235, 0.15);
+  /* ── Primary Accent — Electric Blue ────────── */
+  --accent-900:     #eff6ff;
+  --accent-700:     #1d4ed8;
+  --accent-500:     #3b82f6;
+  --accent-400:     #60a5fa;
+  --accent-300:     #93c5fd;
+  --accent-glow:    rgba(59, 130, 246, 0.25);
 
   /* ── Status: Normal / Online ─────────────────── */
-  --status-ok:             #16a34a;
-  --status-ok-dim:         rgba(22, 163, 74, 0.08);
-  --status-ok-border:      rgba(22, 163, 74, 0.30);
+  --status-ok:             #10b981; /* Emerald 500 */
+  --status-ok-dim:         rgba(16, 185, 129, 0.15);
+  --status-ok-border:      rgba(16, 185, 129, 0.4);
+  --status-ok-glow:        rgba(16, 185, 129, 0.3);
 
   /* ── Status: Warning ─────────────────────────── */
-  --status-warn:           #d97706;
-  --status-warn-dim:       rgba(217, 119, 6, 0.08);
-  --status-warn-border:    rgba(217, 119, 6, 0.30);
+  --status-warn:           #f59e0b; /* Amber 500 */
+  --status-warn-dim:       rgba(245, 158, 11, 0.15);
+  --status-warn-border:    rgba(245, 158, 11, 0.4);
+  --status-warn-glow:      rgba(245, 158, 11, 0.3);
 
   /* ── Status: Alert ───────────────────────────── */
-  --status-alert:          #dc2626;
-  --status-alert-dim:      rgba(220, 38, 38, 0.08);
-  --status-alert-border:   rgba(220, 38, 38, 0.30);
+  --status-alert:          #ef4444; /* Red 500 */
+  --status-alert-dim:      rgba(239, 68, 68, 0.15);
+  --status-alert-border:   rgba(239, 68, 68, 0.4);
+  --status-alert-glow:     rgba(239, 68, 68, 0.3);
 
   /* ── Status: Offline ─────────────────────────── */
-  --status-offline:        #64748b;
-  --status-offline-dim:    rgba(100, 116, 139, 0.08);
-  --status-offline-border: rgba(100, 116, 139, 0.25);
+  --status-offline:        #94a3b8; /* Slate 400 */
+  --status-offline-dim:    rgba(148, 163, 184, 0.15);
+  --status-offline-border: rgba(148, 163, 184, 0.3);
+  --status-offline-glow:   rgba(148, 163, 184, 0.2);
 
   /* ── Text ────────────────────────────────────── */
-  --text-primary:   #0f172a;   /* Slate 900 */
-  --text-secondary: #475569;   /* Slate 600 */
-  --text-muted:     #94a3b8;   /* Slate 400 */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
   --text-inverse:   #ffffff;
 
   /* ── Gradients ───────────────────────────────── */
-  --gradient-header: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  --gradient-card:   linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  --gradient-accent: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-  --gradient-alert:  linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-  --gradient-login:  radial-gradient(circle at 50% 30%, #e0f2fe 0%, #f8fafc 70%);
+  /* A vibrant gradient for text */
+  --gradient-text:   linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --gradient-accent: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  --gradient-alert:  linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  --gradient-warn:   linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --gradient-ok:     linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  
+  --bg-page-grad:    radial-gradient(circle at top left, #e0f2fe 0%, #f0f4f8 40%, #f8fafc 100%);
 
   /* ── Elevation Shadows ───────────────────────── */
-  --shadow-sm:  0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-  --shadow-md:  0 4px 12px rgba(15,23,42,0.06), 0 2px 4px rgba(15,23,42,0.04);
-  --shadow-lg:  0 10px 25px rgba(15,23,42,0.08), 0 4px 10px rgba(15,23,42,0.04);
-  --shadow-xl:  0 20px 48px rgba(15,23,42,0.12);
-  --shadow-glow-accent: 0 0 20px rgba(37, 99, 235, 0.2);
-  --shadow-glow-alert:  0 0 20px rgba(220,38,38,0.2);
-
+  --shadow-sm:  0 2px 4px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.02);
+  --shadow-md:  0 8px 24px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.04);
+  --shadow-lg:  0 16px 48px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04);
+  --shadow-glow-accent: 0 0 24px rgba(59, 130, 246, 0.3);
+  
   /* ── Layout metrics ──────────────────────────── */
-  --sidebar-width:           240px;
-  --sidebar-collapsed-width: 60px;
-  --header-height:           60px;
+  --sidebar-width:           260px;
+  --sidebar-collapsed-width: 72px;
+  --header-height:           72px;
   --content-max-width:       1440px;
 
   /* ── Radius & Spacing ────────────────────────── */
-  --radius-sm:   6px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
-  --radius-xl:   24px;
+  --radius-sm:   8px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
   --radius-full: 9999px;
 
   --space-1:  0.25rem;
@@ -84,74 +95,83 @@
   --space-10: 2.50rem;
 
   /* ── Typography Scale ─────────────────────────── */
+  --text-xs:  0.75rem;
   --text-sm:  0.875rem;
   --text-md:  1rem;
   --text-lg:  1.125rem;
   --text-xl:  1.25rem;
   --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3.5rem;
 }
 
 [data-theme="dark"] {
-  /* ── Backgrounds ─────────────────────────────── */
-  --bg-base:        #000000;   /* Pure pitch OLED black */
-  --bg-surface:     #0a0b10;   /* Dark glass cards & sidebar */
-  --bg-elevated:    #12141e;   /* Hover, modals, dropdowns */
-  --bg-input:       #0d0e15;   /* TextInput fields */
-  --bg-overlay:     rgba(0, 0, 0, 0.92); /* Modal overlay backdrop */
+  /* ── Backgrounds & Glass ─────────────────────── */
+  --bg-page:        #050505;   /* Deep OLED black */
+  --bg-surface:     rgba(18, 18, 20, 0.7); /* Frosted dark glass */
+  --bg-elevated:    rgba(28, 28, 32, 0.85); 
+  --bg-input:       rgba(255, 255, 255, 0.03);
+  --bg-overlay:     rgba(0, 0, 0, 0.85); 
+  
+  --glass-border:   rgba(255, 255, 255, 0.08);
 
   /* ── Borders ─────────────────────────────────── */
-  --border-subtle:  rgba(255, 255, 255, 0.07);
-  --border-default: rgba(255, 255, 255, 0.12);
-  --border-hover:   rgba(56, 189, 248, 0.40);
+  --border-subtle:  rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-hover:   rgba(56, 189, 248, 0.4);
   --border-focus:   #38bdf8;
 
-  /* ── Primary Accent — Sky/Light Blue ─────── */
-  --accent-900:     #0f2b46;
-  --accent-700:     #0284c7;
-  --accent-500:     #38bdf8;
-  --accent-400:     #7dd3fc;
-  --accent-300:     #bae6fd;
-  --accent-glow:    rgba(56, 189, 248, 0.25);
+  /* ── Primary Accent — Neon Cyan ────────────── */
+  --accent-900:     #082f49;
+  --accent-700:     #0369a1;
+  --accent-500:     #0ea5e9;
+  --accent-400:     #38bdf8;
+  --accent-300:     #7dd3fc;
+  --accent-glow:    rgba(14, 165, 233, 0.35);
 
   /* ── Status: Normal / Online ─────────────────── */
-  --status-ok:             #00e676;
-  --status-ok-dim:         rgba(0, 230, 118, 0.12);
-  --status-ok-border:      rgba(0, 230, 118, 0.40);
+  --status-ok:             #10b981;
+  --status-ok-dim:         rgba(16, 185, 129, 0.15);
+  --status-ok-border:      rgba(16, 185, 129, 0.4);
+  --status-ok-glow:        rgba(16, 185, 129, 0.35);
 
   /* ── Status: Warning ─────────────────────────── */
-  --status-warn:           #ffab00;
-  --status-warn-dim:       rgba(255, 171, 0, 0.12);
-  --status-warn-border:    rgba(255, 171, 0, 0.40);
+  --status-warn:           #fbbf24;
+  --status-warn-dim:       rgba(251, 191, 36, 0.15);
+  --status-warn-border:    rgba(251, 191, 36, 0.4);
+  --status-warn-glow:      rgba(251, 191, 36, 0.35);
 
   /* ── Status: Alert ───────────────────────────── */
-  --status-alert:          #ff1744;
-  --status-alert-dim:      rgba(255, 23, 68, 0.12);
-  --status-alert-border:   rgba(255, 23, 68, 0.40);
+  --status-alert:          #f43f5e; /* Rose 500 */
+  --status-alert-dim:      rgba(244, 63, 94, 0.15);
+  --status-alert-border:   rgba(244, 63, 94, 0.4);
+  --status-alert-glow:     rgba(244, 63, 94, 0.35);
 
   /* ── Status: Offline ─────────────────────────── */
   --status-offline:        #64748b;
-  --status-offline-dim:    rgba(100, 116, 139, 0.12);
-  --status-offline-border: rgba(100, 116, 139, 0.35);
+  --status-offline-dim:    rgba(100, 116, 139, 0.15);
+  --status-offline-border: rgba(100, 116, 139, 0.3);
+  --status-offline-glow:   rgba(100, 116, 139, 0.2);
 
   /* ── Text ────────────────────────────────────── */
-  --text-primary:   #ffffff;
-  --text-secondary: #a0aec0;
-  --text-muted:     #4a5568;
-  --text-inverse:   #000000;
+  --text-primary:   #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted:     #475569;
+  --text-inverse:   #020617;
 
   /* ── Gradients ───────────────────────────────── */
-  --gradient-header: linear-gradient(180deg, #0a0b10 0%, #000000 100%);
-  --gradient-card:   linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.005) 100%), #0a0b10;
-  --gradient-accent: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-  --gradient-alert:  linear-gradient(135deg, #d50000 0%, #ff1744 100%);
-  --gradient-login:  radial-gradient(circle at 50% 30%, #002233 0%, #000000 80%);
+  --gradient-text:   linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+  --gradient-alert:  linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
+  --gradient-warn:   linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
+  --gradient-ok:     linear-gradient(135deg, #059669 0%, #10b981 100%);
+  
+  --bg-page-grad:    radial-gradient(circle at top left, #081221 0%, #050505 50%, #000000 100%);
 
   /* ── Elevation Shadows ───────────────────────── */
-  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.8);
-  --shadow-md:  0 4px 20px rgba(0, 0, 0, 0.9), 0 0 1px rgba(255, 255, 255, 0.1);
-  --shadow-lg:  0 10px 30px rgba(0, 0, 0, 0.95), 0 0 20px rgba(56, 189, 248, 0.1);
-  --shadow-xl:  0 20px 50px rgba(0, 0, 0, 0.98);
-  --shadow-glow-accent: 0 0 25px rgba(56, 189, 248, 0.35), 0 0 50px rgba(56, 189, 248, 0.1);
-  --shadow-glow-alert:  0 0 25px rgba(255, 23, 68, 0.4), 0 0 50px rgba(255, 23, 68, 0.15);
+  --shadow-sm:  0 4px 12px rgba(0,0,0,0.5);
+  --shadow-md:  0 12px 32px rgba(0,0,0,0.7), 0 0 1px rgba(255,255,255,0.05);
+  --shadow-lg:  0 20px 48px rgba(0,0,0,0.9), 0 0 2px rgba(255,255,255,0.08);
+  --shadow-glow-accent: 0 0 32px rgba(14, 165, 233, 0.4);
 }

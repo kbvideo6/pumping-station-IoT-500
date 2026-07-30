@@ -13,6 +13,8 @@ struct PzemReading {
     float frequency;    // Hz
     float powerFactor;  // 0.00–1.00
     bool  valid;        // false if PZEM not responding
+    bool  alert;        // true if threshold crossed
+    char  alertType[24];// e.g. "LOW_CURRENT"
 };
 
 void         pzem_init();
